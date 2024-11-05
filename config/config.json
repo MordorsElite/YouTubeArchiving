@@ -1,0 +1,5 @@
+{
+    "temp_file_directory": "temp",
+    "subtitle_languages": ["en", "de"],
+    "download_rate_limit_in_mb": 1000
+}
