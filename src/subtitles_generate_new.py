@@ -20,7 +20,7 @@ def _load_model():
     model = whisper.load_model("base").to(device)
     return model
 
-def _get_word_by_word_timestamps(model, audio_file:str):
+def _get_word_by_word_timestamps(model:whisper.Whisper, audio_file:str):
     warnings.filterwarnings("ignore", category=UserWarning)
     # Transcribe the audio with word-level timestamps
     result = model.transcribe(audio_file, word_timestamps=True)
@@ -70,38 +70,53 @@ def _delete_file(file_path):
     except Exception as e:
         print(f"An error occurred while trying to delete the file: {e}")
 
-def generate_new_subtitles(video_file:str, output_subtitle_file:str) -> None:
-    # Extract audio file
-    temp_audio_file = os.path.join('TempFiles', f'{video_file}.m4a')
-    _extract_audio_file(temp_audio_file)
+def generate_new_subtitles(video_file:str, output_subtitle_file:str=None) -> dict:
+    debug_info = {}
 
+    try:
+        # Extract audio file
+        temp_audio_file = f'{video_file}.temp.m4a'
+        _extract_audio_file(temp_audio_file)
+        debug_info['audio_file_extraction'] = \
+            f'Audio file {temp_audio_file} successfully extracted'
+    except Exception as err:
+        debug_info['audio_file_extraction'] = 'Error: ' +\
+            f'Audio file {temp_audio_file} failed to extract {err}'
+        
     # Generate Transcription
-    model = _load_model()
-    result = _get_word_by_word_timestamps(model, temp_audio_file)
+    try:
+        model = _load_model()
+        result = _get_word_by_word_timestamps(model, temp_audio_file)
+        debug_info['transcription_model'] = \
+            f'Transcription model successfully applied.'
+    except Exception as err:
+        debug_info['transcription_model'] = 'Error: ' +\
+            f'Transcription model failed: {err}.'
 
     # Generate Subtitle file from Transcriptions
-    _generate_vtt(result, output_subtitle_file)
+    try:
+        if output_subtitle_file is None:
+            output_subtitle_file = video_file[:-4] + '.en.new.vtt'
+        _generate_vtt(result, output_subtitle_file)
+        debug_info['generate_vtt'] = \
+            f'VTT subtitles generated successfully.'
+    except Exception as err:
+        debug_info['transcription_model'] = 'Error: ' +\
+            f'VTT subtitle generation failed: {err}.'
+    
 
     # Delete temporary audio file
-    _delete_file(temp_audio_file)
+    try:
+        _delete_file(temp_audio_file)
+        debug_info['deleted_temp_audio'] = \
+            f'Temporary audio file removed.'
+    except Exception as err:
+        debug_info['deleted_temp_audio'] = 'Error: ' +\
+            f'Temporary audio file could not be removed: {err}.'
+    
+    return debug_info
 
 
 
 if __name__ == '__main__':
-    audio_file = r'TempFiles\WordByWordTranscritptions.py'
-
-    start_time_model = time()
-    model = _load_model()
-    end_time_model = time()
-
-    start_time_transcription = time()
-    result = _get_word_by_word_timestamps(model, audio_file)
-    end_time_transcription = time()
-
-    start_time_vtt = time()
-    _generate_vtt(result)
-    end_time_vtt = time()
-
-    print(f'Time to load model: {end_time_model - start_time_model:0.3f}s')
-    print(f'Time to transcribe: {end_time_transcription - start_time_transcription:0.3f}s')
-    print(f'Time to generate VTT: {end_time_vtt - start_time_vtt:0.3f}s')
+    pass

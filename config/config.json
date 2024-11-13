@@ -19,5 +19,6 @@
 
     "subtitle_languages": ["en", "de"],
     "download_rate_limit_in_mb": 1000,
+    "download_max_video_height": 1080,
     "sleep_interval": 10
 }

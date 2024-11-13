@@ -1,13 +1,14 @@
-import os
+import argparse
 import json
 import logging
-from datetime import datetime
-import argparse
-import sys
+import os
 import shutil
+import sys
+from datetime import datetime
 
 import downloader
 import subtitles_convert_existing as sub_convert
+import subtitles_generate_new as sub_generate
 
 # Load config
 config_file_path = 'config/config.json'
@@ -180,6 +181,13 @@ def _parse_arguments():
         help="Override the max video height specified in the config (in Pixels)"
     )
 
+    paused_dir = config['download_directory_in_progress_paused']
+    parser.add_argument(
+        "--postpone-post-processing", action='store_true', required='False',
+        help=f'Disables new subtitle generation etc. '+\
+            'Video will be moved to {paused_dir} instead of final directory'
+    )
+
     # Parse and return arguments
     return parser.parse_args()
 
@@ -298,6 +306,31 @@ def main():
                 shutil.move(src, dst)
             logger.info(f'Finished moving failed download {i+1}\'s '
                         f'files to failed files')
+            
+        # If Post-processing is set to "postponted", skip rest of the loop
+        if args.postpone_post_processing:
+            paused_dir = config['download_directory_in_progress_paused']
+            logger.info(f'Download {i+1} ({url}): Post-processing postponed. '
+                        f'Moving files to {paused_dir}.')
+            download_directory_in_progress_active = os.path.join(
+                config["download_directory_main"],
+                config["download_directory_in_progress"],
+                config["download_directory_in_progress_active"])
+            download_directory_in_progress_paused = os.path.join(
+                config["download_directory_main"],
+                config["download_directory_in_progress"],
+                config["download_directory_in_progress_paused"])
+            paused_files = os.listdir(download_directory_in_progress_paused)
+            for file in paused_files:
+                src = os.path.join(download_directory_in_progress_active, file)
+                dst = os.path.join(download_directory_in_progress_paused, file)
+                shutil.move(src, dst)
+            logger.info(f'Download {i+1} ({url}): '
+                        f'Finished moving files to {paused_dir}.')
+
+            # Skip rest of loop, as it's all post processing
+            continue
+
         
         # Modify/generate subtitles for downloaded Video
 
@@ -318,7 +351,8 @@ def main():
             logger.error(f'Download {i+1}: info.json not found!')
             # !!!!!!!!!!!!!! Error handling necessary!!!!!!!!!
             pass
-
+        
+        # Load info.json
         info_json = os.path.join(
             download_directory_in_progress_active,
             info_json
@@ -326,9 +360,11 @@ def main():
         with open(info_json, 'r', encoding='utf-8') as info_file:
             info_data = json.load(info_file)
 
+        # Preprocessing for caption analysis
         subtitle_langs = config['subtitle_languages']
         subtitle_langs_covered = list.copy(subtitle_langs)
         next_step_required = True
+
         # Downloaded video has Manual subtitles
         if info_data['subtitles'] != {}:
             # Check that downloaded video has all required
@@ -390,18 +426,38 @@ def main():
                     else:
                         logger.info(f'{key}: {message}')
 
-
-
         # Downloaded video does NOT have automatic or manual captions
         # If this is the case and the missing langauge is English,
         # Generate new caption using ML-model.
         # This script does not have multiple models for different Languages
         if next_step_required and 'en' in subtitle_langs_covered:
-            pass
+            # Find video file
+            file_list = os.listdir(download_directory_in_progress_active)
+            video_file = None
+            found = False
+            for video_file_format in ['mkv', 'mp4', 'webm']:
+                for file in file_list:
+                    if str.endswith(file, video_file_format):
+                        video_file = file
+                        break
+                if found:
+                    break
+            # If video file found, generate new Subtitles
+            video_file_path = os.path.join(
+                download_directory_in_progress_active,
+                video_file
+            )
+            if video_file_path is not None and os.path.exists(video_file_path):
+                debug_info = sub_generate.generate_new_subtitles(
+                    video_file_path)
+                for key, message in debug_info.items():
+                    if str.startswith(message, 'Error'):
+                        logger.error(f'{key}: {message}')
+                    else:
+                        logger.info(f'{key}: {message}')
 
-
-
-
+        # Embed subtitle files into video file
+        
 
         # Move finalized product to final directories
 

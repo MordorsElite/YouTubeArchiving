@@ -14,16 +14,16 @@ def _get_ydl_opts(
         output_dir=None, 
         subtitle_langs=['en', 'de'],
         download_archive:str=None, 
-        rate_limit:int=1000,
-        max_height:int=1080
+        rate_limit:int=None,
+        max_height:int=None
         ) -> dict:
     """
     Generates yt-dlp download preferences
 
     @param output_dir: Directory in which to put the downloaded files (str)
     @param subtitle_langs: List of languages to download subtitles for (list[str])
-    @param rate_limit: Limit download speed in MB (int)
-    @param max_heigh: Max Video Height in Pixels (int)
+    @param rate_limit: Limit download speed in MB, default in config (int)
+    @param max_heigh: Max Video Height in Pixels, defautt in config (int)
     @param download_archive: File containing IDs of already downloaded files (str)
 
     @return: Dictionary of download preferences
@@ -31,7 +31,13 @@ def _get_ydl_opts(
     output = 'YouTube ## %(uploader)s ## %(upload_date)s ## %(title)s ## %(id)s.%(ext)s'
     if output_dir is not None:
         output = os.path.join(output_dir, output)
+    
+    if rate_limit is None:
+        rate_limit = config['download_rate_limit_in_mb']
     rate_limit = rate_limit * 1000000
+
+    if max_height is None:
+        max_height = config['download_max_video_height']
 
     # Define options based on your requirements
     ydl_opts = {

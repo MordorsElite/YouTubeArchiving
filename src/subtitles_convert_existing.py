@@ -411,7 +411,7 @@ def generate_converted_subtitles(
 
     @Return A dict with debug information about the generated subtitle files
     """
-    debug = {}
+    debug_info = {}
     # Get header for all files
     header = ''
     with open(subtitle_file, 'r') as original:
@@ -419,8 +419,8 @@ def generate_converted_subtitles(
             header += original.readline()
         header = header[:-1]
     if header is None or header == '':
-        debug['other'] = 'Error: Subtitle file contained incorrect header'
-        return debug
+        debug_info['other'] = 'Error: Subtitle file contained incorrect header'
+        return debug_info
 
     # Define output file names
     sub_file_dir_it = subtitle_file[:-4] + '.direct_iterative' + subtitle_file[-4:]
@@ -432,10 +432,10 @@ def generate_converted_subtitles(
         try:
             generate_iterative_subtitles_direct(
                 subtitle_file, header, sub_file_dir_it)
-            debug['direct_iterative'] = \
+            debug_info['direct_iterative'] = \
                 f'Direct Iterative subtitles created: {sub_file_dir_it}'
         except Exception as err:
-            debug['direct_iterative'] = \
+            debug_info['direct_iterative'] = \
                 f'Error: ' +\
                 f'Creation of Direct Iterative subtitles unsuccessful: ' +\
                 f'{sub_file_dir_it}: {err}'
@@ -445,23 +445,25 @@ def generate_converted_subtitles(
         try:
             token_list = _get_token_list(subtitle_file)
             caption_lines = _get_caption_lines(token_list)
-            debug['other'] = \
+            debug_info['other'] = \
                 f'Successfully reformatted subtitle file: {subtitle_file}'
         except Exception as err:
-            debug['other'] = \
+            debug_info['other'] = \
                 f'Error: ' +\
                 f'Error while reformatting subtitles: ' +\
                 f'{subtitle_file}: {err}'
+            # Return early as the rest relies on this data
+            return debug_info
 
     if reformatted_non_it:
         # Generate reformatted subtitles
         try:
             generate_non_iterative_subtitles_reformat(
                 caption_lines, token_list, header, sub_file_reform)
-            debug['reformatted_non_iterative'] = \
+            debug_info['reformatted_non_iterative'] = \
                 f'Reformatted non Iterative subtitles created: {sub_file_reform}'
         except Exception as err:
-            debug['reformatted_non_iterative'] = \
+            debug_info['reformatted_non_iterative'] = \
                 f'Error: ' +\
                 f'Creation of Reformatted non iterative subtitles unsuccessful: ' +\
                 f'{sub_file_reform}: {err}'
@@ -469,15 +471,15 @@ def generate_converted_subtitles(
         try:
             generate_iterative_subtitles_reformat(
                 caption_lines, token_list, header, sub_file_ref_it)
-            debug['reformatted_iterative'] = \
+            debug_info['reformatted_iterative'] = \
                 f'Reformatted Iterative subtitles created: {sub_file_ref_it}'
         except Exception as err:
-            debug['reformatted_iterative'] = \
+            debug_info['reformatted_iterative'] = \
                 f'Error: ' +\
                 f'Creation of Reformatted Iterative subtitles unsuccessful: ' +\
                 f'{sub_file_ref_it}: {err}'
 
-    return debug
+    return debug_info
 
 
 if __name__ == '__main__':
