@@ -1,6 +1,7 @@
 import yt_dlp
 import os
 import json
+from datetime import datetime
 
 # Load config
 config_file_path = 'config/config.json'
@@ -28,9 +29,9 @@ def get_ydl_opts(output_dir=None, subtitle_langs=['en', 'de'], rate_limit_in_mb=
     ydl_opts = {
         # Custom format selection with prioritized fallbacks
         'format': (
-            'bestvideo[height<=1080][vcodec=avc1]+bestaudio[acodec=mp4a]/'
-            'bestvideo[height<=1080][vcodec^=avc1]+bestaudio[acodec=mp4a]/'
-            'bestvideo[height<=1080]+bestaudio[acodec=mp4a]/'
+            'bestvideo[height<=1080][vcodec~=avc1]+bestaudio[acodec~=mp4a]/'
+            'bestvideo[height<=1080][vcodec!~=avc1]+bestaudio[acodec~=mp4a]/'
+            'bestvideo[height<=1080]+bestaudio[acodec~=mp4a]/'
             'bestvideo[height<=1080]+bestaudio/'
             'best'
         ),
@@ -51,7 +52,17 @@ def get_ydl_opts(output_dir=None, subtitle_langs=['en', 'de'], rate_limit_in_mb=
         # Postprocessors to handle embedding options
         'postprocessors': [
             {
-                'key': 'FFmpegMetadata',                      # Embed metadata
+                'key': 'FFmpegMetadata',  # Embeds metadata tags
+                'add_metadata': {
+                    'title': '%(title)s',
+                    'artist': '%(uploader)s',
+                    'date': '%(upload_date)s',
+                    'comment': f'Downloaded on {datetime.now().strftime("%Y-%m-%d")}',
+                    'video-id': '%(id)s',
+                    'uploader': '%(uploader)s',
+                    'upload_date': '%(upload_date)s',
+                    'download_date': datetime.now().strftime("%Y-%m-%d")
+                }
             },
             {
                 'key': 'EmbedThumbnail',                      # Embed thumbnail into the file
@@ -95,4 +106,5 @@ def download(url:str) -> None:
 
 
 if __name__ == '__main__':
-    pass
+    url = 'https://www.youtube.com/watch?v=wXcS9oD1_i8'
+    download(url)
