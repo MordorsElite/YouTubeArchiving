@@ -6,7 +6,7 @@ import argparse
 import sys
 import shutil
 
-import Downloader
+import downloader
 
 # Load config
 config_file_path = 'config/config.json'
@@ -245,7 +245,7 @@ def main():
                 'Neither URL nor URL-file provided!')
         
         if args.playlist or args.channel:
-            video_urls = Downloader.get_video_urls_from_url(args.url)
+            video_urls = downloader.get_video_urls_from_url(args.url)
             if video_urls in [None, []]:
                 return _print_error_and_exit(logger,
                     f'No URLs found for '
@@ -262,7 +262,7 @@ def main():
         logger.info(f'Download {i+1}: {url} with aditional parameters '
                     f'rate_limit={args.rate_limit} '
                     f'and max_height={args.max_height}')
-        failure = Downloader.download(url, args.rate_limit, args.max_height)
+        failure = downloader.download(url, args.rate_limit, args.max_height)
 
         # Check if download was successful
         if not failure:
