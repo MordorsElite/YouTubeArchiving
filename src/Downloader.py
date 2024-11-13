@@ -56,7 +56,8 @@ def _get_ydl_opts(
         'writesubtitles': True,                                 # Download subtitles
         'writeautomaticsub': True,                              # Download auto-generated subtitles
         'subtitleslangs': subtitle_langs,                       # Limit subtitles to English and German
-        
+        'subtitlesformat': 'vtt/best',                          # Prefer VTT subtitle format
+
         # Postprocessors to handle embedding options
         'postprocessors': [
             {

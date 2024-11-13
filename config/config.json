@@ -12,10 +12,10 @@
     "download_directory_data": "data",
     "download_directory_data_info_json": "info_json",
     "download_directory_data_logs": "logs",
-
     "download_archive_file": "download_archive.txt",
     "download_failed_list": "downloads_failed.txt",
     "download_to_process_list": "downloads_to_process.txt",
+    "download_database": "download_database.csv",
 
     "subtitle_languages": ["en", "de"],
     "download_rate_limit_in_mb": 1000,

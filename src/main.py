@@ -7,6 +7,7 @@ import sys
 import shutil
 
 import downloader
+import subtitles_convert_existing as sub_convert
 
 # Load config
 config_file_path = 'config/config.json'
@@ -348,17 +349,48 @@ def main():
         if next_step_required and info_data['automatic_captions'] != {}:
             # Check that downloaded video has all required/remaining
             # languages as manual subtitles
+            auto_captions_found = []
             subtitle_langs = subtitle_langs_covered
             for sub_id, sub_info in info_data['automatic_captions'].items():
                 for lang_idx, language in enumerate(subtitle_langs):
-                    if str.startswith(sub_id, language):
+                    if sub_id == language:
                         subtitle_langs_covered[lang_idx] = None
+                        auto_captions_found.append(language)
                         break
             subtitle_langs_covered = [lang for lang in subtitle_langs_covered 
                                            if lang is not None]
             # All required langauges available as automatic captions
             if subtitle_langs_covered == []:
                 next_step_required = False
+
+            file_list = os.listdir(download_directory_in_progress_active)
+
+
+            # Generate converted captions for automatic captions
+            for language in auto_captions_found:
+                # Check that subtitle file is actually available for langauge
+                subtitle_file = None
+                for file in file_list:
+                    if str.endswith(file[:-4], language):
+                        subtitle_file = file
+                        break
+                if subtitle_file is None:
+                    continue
+                # Convert subtitle file into its derivatives
+                if language == 'en':
+                    debug_info = sub_convert.generate_converted_subtitles(
+                        subtitle_file)
+                else:
+                    # If language en reformatting ML-model doesn't apply
+                    debug_info = sub_convert.generate_converted_subtitles(
+                        subtitle_file, True, False, False)
+                for key, message in debug_info.items():
+                    if str.startswith(message, 'Error'):
+                        logger.error(f'{key}: {message}')
+                    else:
+                        logger.info(f'{key}: {message}')
+
+
 
         # Downloaded video does NOT have automatic or manual captions
         # If this is the case and the missing langauge is English,
