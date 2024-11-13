@@ -1,5 +1,23 @@
 {
-    "temp_file_directory": "temp",
+    "download_directory_main": "temp",
+
+    "download_directory_in_progress": "in_progress",
+    "download_directory_in_progress_active": "downloading",
+    "download_directory_in_progress_paused": "awaiting_finalization",
+    "download_directory_in_progress_failed": "failed",
+
+    "download_directory_videos": "videos",
+    "download_directory_subtitles": "subtitles",
+
+    "download_directory_data": "data",
+    "download_directory_data_info_json": "info_json",
+    "download_directory_data_logs": "logs",
+
+    "download_archive_file": "download_archive",
+    "download_failed_list": "downloads_failed",
+    "download_to_process_list": "downloads_to_process",
+
     "subtitle_languages": ["en", "de"],
-    "download_rate_limit_in_mb": 1000
+    "download_rate_limit_in_mb": 1000,
+    "sleep_interval": 10
 }
