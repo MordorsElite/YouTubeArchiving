@@ -42,7 +42,7 @@ class Block():
 
 
 
-def get_word_time_triples(line, pattern_time_stamp):
+def _get_word_time_triples(line, pattern_time_stamp):
     # Find all timestamps
     timestamps = re.findall(pattern_time_stamp, line)
     
@@ -65,7 +65,7 @@ def get_word_time_triples(line, pattern_time_stamp):
 
 
 
-def get_four_line_blocks(file_path:str) -> list[list[str]]:
+def _get_four_line_blocks(file_path:str) -> list[list[str]]:
     # Read the file and split it into lines
     with open(file_path, 'r') as file:
         lines = file.readlines()
@@ -94,7 +94,7 @@ def get_four_line_blocks(file_path:str) -> list[list[str]]:
 
 
 
-def split_text_into_sentences(text:str) -> list[str]:
+def _split_text_into_sentences(text:str) -> list[str]:
     # Suppressing Warning about depricated attribute in imported code
     original_warning_filters = warnings.filters[:]
     warnings.filterwarnings("ignore", message="`grouped_entities` is deprecated")
@@ -111,7 +111,7 @@ def split_text_into_sentences(text:str) -> list[str]:
 
 
 
-def split_sentence_into_subtitle_lines(text:str, max_line_length=42) -> list[str]:
+def _split_sentence_into_subtitle_lines(text:str, max_line_length=42) -> list[str]:
     words = text.split()
     lines = []
     current_line = ""
@@ -154,7 +154,7 @@ def split_sentence_into_subtitle_lines(text:str, max_line_length=42) -> list[str
 
 
 
-def get_token_list(subtitle_file:str) -> list[TimedToken]:
+def _get_token_list(subtitle_file:str) -> list[TimedToken]:
     pattern_block_start = r"^\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}"
     pattern_caption_start = r"<c>"
     pattern_caption_end = r"</c>"
@@ -162,7 +162,7 @@ def get_token_list(subtitle_file:str) -> list[TimedToken]:
 
     # Extract TimedTokens
     list_of_all_tokens = [] 
-    four_line_blocks = get_four_line_blocks(subtitle_file)  
+    four_line_blocks = _get_four_line_blocks(subtitle_file)  
     for i, four_line_block in enumerate(four_line_blocks):
         # Skip header block
         if i == 0:
@@ -185,7 +185,7 @@ def get_token_list(subtitle_file:str) -> list[TimedToken]:
         line = re.sub(pattern_caption_end, '', line)
 
         # Extract new TimedTokens
-        triples = get_word_time_triples(line, pattern_time_stamp)
+        triples = _get_word_time_triples(line, pattern_time_stamp)
         for start, end, token in triples:
             if start is None:
                 start = block_start_time
@@ -209,25 +209,25 @@ def get_token_list(subtitle_file:str) -> list[TimedToken]:
 
 
 
-def get_caption_lines(list_of_all_tokens:list[TimedToken]) -> list[str]:
+def _get_caption_lines(list_of_all_tokens:list[TimedToken]) -> list[str]:
     # Concatenate all tokens into the overall transcript
     full_text = ''
     for timed_token in list_of_all_tokens:
         full_text += timed_token.token + ' '
     
     # Add punctuation to transcript and split text into sentences
-    sentences = split_text_into_sentences(full_text)
+    sentences = _split_text_into_sentences(full_text)
 
     # Split sentences into lines that fit on the screen
     caption_lines = []
     for sentence in sentences:
-        caption_lines += split_sentence_into_subtitle_lines(sentence)
+        caption_lines += _split_sentence_into_subtitle_lines(sentence)
 
     return caption_lines
 
 
 
-def clean_string(string:str) -> str:
+def _clean_string(string:str) -> str:
     # Function to clean up sentences and tokens
     return re.sub(r'[;:!?.,-]', '', string.strip())
 
@@ -239,16 +239,16 @@ def generate_non_iterative_subtitles_reformat(caption_lines:str, list_of_all_tok
     i = 0
     line_triples = []
     for line in caption_lines:
-        line_copy = clean_string(line)
+        line_copy = _clean_string(line)
         line_start_time = None
         line_end_time = None
 
-        if str.startswith(line_copy, clean_string(list_of_all_tokens[i].token)):
+        if str.startswith(line_copy, _clean_string(list_of_all_tokens[i].token)):
             line_start_time = list_of_all_tokens[i].start
 
-        while str.startswith(line_copy, clean_string(list_of_all_tokens[i].token)):
+        while str.startswith(line_copy, _clean_string(list_of_all_tokens[i].token)):
             line_end_time = list_of_all_tokens[i].end
-            line_copy = line_copy[len(clean_string(list_of_all_tokens[i].token)) + 1:]
+            line_copy = line_copy[len(_clean_string(list_of_all_tokens[i].token)) + 1:]
             
             i += 1
             if i >= len(list_of_all_tokens):
@@ -275,12 +275,12 @@ def generate_iterative_subtitles_reformat(caption_lines:str, list_of_all_tokens:
     i = 0
     line_triples = []
     for line in caption_lines:
-        line_copy = clean_string(line)
+        line_copy = _clean_string(line)
 
         # Get all timed lines for a given block
         cumulative_block_line = ''
-        while str.startswith(line_copy, clean_string(list_of_all_tokens[i].token)):
-            line_copy = line_copy[len(clean_string(list_of_all_tokens[i].token)) + 1:]
+        while str.startswith(line_copy, _clean_string(list_of_all_tokens[i].token)):
+            line_copy = line_copy[len(_clean_string(list_of_all_tokens[i].token)) + 1:]
             
             cumulative_block_line += list_of_all_tokens[i].token + ' '
             line_triples.append((list_of_all_tokens[i].start, 
@@ -314,7 +314,7 @@ def generate_iterative_subtitles_direct(subtitle_file:str,
     list_of_all_tokens = [] 
     list_of_subtitle_blocks = []
 
-    orignal_four_line_blocks = get_four_line_blocks(subtitle_file)  
+    orignal_four_line_blocks = _get_four_line_blocks(subtitle_file)  
 
     for i, block in enumerate(orignal_four_line_blocks):
         # Skip header block
@@ -339,7 +339,7 @@ def generate_iterative_subtitles_direct(subtitle_file:str,
 
         # Extract new TimedTokens
         list_of_tokens_in_block = []
-        triples = get_word_time_triples(line, pattern_time_stamp)
+        triples = _get_word_time_triples(line, pattern_time_stamp)
         for start, end, token in triples:
             if start is None:
                 start = block_start_time
@@ -396,8 +396,8 @@ if __name__ == '__main__':
             header += original.readline()
         header = header[:-1]
 
-    token_list = get_token_list(subtitle_file)
-    caption_lines = get_caption_lines(token_list)
+    token_list = _get_token_list(subtitle_file)
+    caption_lines = _get_caption_lines(token_list)
 
 
     generate_non_iterative_subtitles_reformat(caption_lines, token_list, header, 

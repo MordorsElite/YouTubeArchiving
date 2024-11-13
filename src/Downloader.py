@@ -10,7 +10,7 @@ with open(config_file_path, 'r') as config_file:
 
 
 
-def get_ydl_opts(
+def _get_ydl_opts(
         output_dir=None, 
         subtitle_langs=['en', 'de'], 
         rate_limit=1000,
@@ -73,7 +73,7 @@ def get_ydl_opts(
 
 
 
-def download_video_by_url(url:str, ydl_opts: dict) -> bool:
+def _download_video_by_url(url:str, ydl_opts: dict) -> bool:
     """
     Downloads video using yt-dlp.
 
@@ -104,12 +104,12 @@ def download(url:str) -> bool:
         config["download_directory_in_progress_active"]
     )
 
-    ydl_opts = get_ydl_opts(
+    ydl_opts = _get_ydl_opts(
         config["temp_file_directory"],
         config["subtitle_languages"],
         config["download_rate_limit_in_mb"])
 
-    return download_video_by_url(url, ydl_opts)
+    return _download_video_by_url(url, ydl_opts)
 
 
 
