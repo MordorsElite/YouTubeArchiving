@@ -42,12 +42,12 @@ def _get_ydl_opts(
     # Define options based on your requirements
     ydl_opts = {
         # Custom format selection with prioritized fallbacks
-        'format': (
-            f'bestvideo[height<={max_height}][vcodec~=avc1]+bestaudio[acodec~=mp4a]/'
-            f'bestvideo[height<={max_height}][vcodec!~=avc1]+bestaudio[acodec~=mp4a]/'
-            f'bestvideo[height<={max_height}]+bestaudio[acodec~=mp4a]/'
-            f'bestvideo[height<={max_height}]+bestaudio/'
-            f'best'
+        'format': ('('
+            f'bestvideo[height<={max_height}][vcodec~=av01]/'
+            f'bestvideo[height<={max_height}][vcodec~=vp09]/'
+            f'bestvideo[height<={max_height}]) + ('
+            f'bestaudio[acodec~=mp4a]/'
+            f'bestaudio)'
         ),
 
         'merge_output_format': 'mkv',                           # Merge output to MKV format
@@ -67,6 +67,9 @@ def _get_ydl_opts(
         # Postprocessors to handle embedding options
         'postprocessors': [
             {
+                'key': 'FFmpegMetadata',                        # Embed metadata
+            },
+            {
                 'key': 'EmbedThumbnail',                        # Embed thumbnail into the file
                 'already_have_thumbnail': False
             }
@@ -77,6 +80,7 @@ def _get_ydl_opts(
         ydl_opts['download_archive'] = download_archive         # Add downloaded video ids to archive file
         ydl_opts['break_on_existing'] = True                    # Don't download videos with archived ids
 
+    print(ydl_opts)
     return ydl_opts
 
 
@@ -164,7 +168,7 @@ def download(
     if override_max_height is not None:
         max_video_height = override_max_height
     else:
-        max_video_height = config["download_rate_limit_in_mb"]
+        max_video_height = config["download_max_video_height"]
 
     ydl_opts = _get_ydl_opts(
         active_download_directory,
@@ -179,5 +183,4 @@ def download(
 
 
 if __name__ == '__main__':
-    url = 'https://www.youtube.com/watch?v=wXcS9oD1_i8'
-    download(url)
+    pass
