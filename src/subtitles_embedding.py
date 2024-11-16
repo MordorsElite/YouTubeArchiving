@@ -114,3 +114,6 @@ def add_subtitle_streams(
     #print(ffmpeg.compile(output_ffmpeg))
 
     ffmpeg.run(output_ffmpeg)
+
+if __name__ == '__main__':
+    pass
