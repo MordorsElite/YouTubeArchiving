@@ -18,7 +18,7 @@
     "download_database": "download_database.csv",
 
     "subtitle_languages": ["en", "de"],
-    "subtitle_priority": ["reformatted", "reformatted_iterative", "direct_iterative", "default"],
+    "subtitle_priority": ["reformatted", "reformatted_iterative", "direct_iterative", "default", "new"],
     "download_rate_limit_in_mb": 1000,
     "download_max_video_height": 1080,
     "sleep_interval": 10

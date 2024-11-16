@@ -535,6 +535,8 @@ def main():
             file_extension = str.split(file, '.')[-1]
             if file_extension in ['mkv', 'mp4', 'webm']:
                 video_file = file
+            elif file_extension in ['srt', 'vtt', 'ass']:
+                subtitle_files.append(file)
 
         # Check video and subtitles are available
         if video_file is None:
