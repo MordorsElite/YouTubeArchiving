@@ -1,7 +1,7 @@
 import re
 import warnings
-from deepmultilingualpunctuation import PunctuationModel
 
+from deepmultilingualpunctuation import PunctuationModel
 
 
 class TimedToken():
@@ -653,6 +653,7 @@ def generate_converted_subtitles(
                 f'{sub_file_ref_it}: {err}'
 
     return debug_info
+
 
 
 if __name__ == '__main__':

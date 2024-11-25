@@ -1,11 +1,16 @@
-import os 
-import ffmpeg
 import json
+import logging
+import os
+import sys
+
+import ffmpeg
 
 # Load config
 config_file_path = 'config/config.json'
 with open(config_file_path, 'r') as config_file:
     config = json.load(config_file)
+
+
 
 def _get_subtitle_language(subtitle_file:str) -> str:
     """
@@ -31,6 +36,8 @@ def _get_subtitle_language(subtitle_file:str) -> str:
     else:
         return split_sub_file[-3] + '.' + language
     
+
+
 def _order_subtitles(subtitle_files:list[str]) -> list[str]:
     """
     Orders subtitle files according to the priorities specified in the config.
@@ -71,6 +78,7 @@ def _order_subtitles(subtitle_files:list[str]) -> list[str]:
     # Return ordered list of subtitle files
     return [subtitle_files[idx] for idx in pritority_idices]
         
+
 
 def add_subtitle_streams(
         video_file:str, 
@@ -135,6 +143,8 @@ def add_subtitle_streams(
     # Overwrite previous video file
     os.remove(video_file)
     os.rename(output_file, video_file)
+
+
 
 if __name__ == '__main__':
     pass

@@ -1,12 +1,14 @@
-import os
-import json
 import csv
 import datetime
+import json
+import os
 
 # Load config
 config_file_path = 'config/config.json'
 with open(config_file_path, 'r') as config_file:
     config = json.load(config_file)
+
+
 
 def _sanitize_value(value):
     """
@@ -26,6 +28,8 @@ def _sanitize_value(value):
         return value.replace('\0', '')      # Remove null bytes (if any)
     else:
         return value
+
+
 
 def _write_to_csv(data:dict):
     """
@@ -119,6 +123,7 @@ def get_field_value_by_video_id(
     raise ValueError(f"Row with ID '{video_id}' not found.")
 
 
+
 def update_database(
         video_id:str, 
         video_source:str,
@@ -165,7 +170,7 @@ def update_database(
     with open(info_json_file, 'r', encoding='utf-8') as infile:
         info_json = json.load(infile)
     new_video_title = info_json['fulltitle']
-    new_video_description = info_json['video_description']
+    new_video_description = info_json['description']
 
     # Collect relevant information for CSV update from input
     new_video_source = video_source
@@ -336,28 +341,7 @@ def add_to_database(
     ### Write to CSV
     _write_to_csv(csv_data)
 
+
+
 if __name__ == '__main__':
-    possible_fields = [
-        'video_id',
-        'video_title',
-        'video_language',
-        'video_length',
-        'video_file',
-        'video_file_size',
-        'channel_id',
-        'channel_name',
-        'uploader_id',
-        'uploader_name',
-        'upload_date',
-        'download_date',
-        'video_source',
-        'subtitle_languages',
-        'subtitle_formats',
-        'video_description',
-        'video_captions_full'
-    ]
-    for field in possible_fields:
-        value = get_field_value_by_video_id(
-            'wXcS9oD1_i8',
-            field)
-        print(f'{field} : {value}')
+    pass

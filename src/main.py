@@ -2,15 +2,16 @@ import argparse
 import json
 import logging
 import os
+import re
 import shutil
 import sys
-import yt_dlp
-import re
 from datetime import datetime
 
+import yt_dlp
+
+import database
 import downloader
 import subtitles_embedding
-import database
 
 # Load config
 config_file_path = 'config/config.json'
@@ -158,22 +159,6 @@ def _setup_logger(print_to_console:bool=False) -> logging.Logger:
     return logger
 
 
-class StreamToLogger:
-    """
-    Redirects writes to a stream (e.g., sys.stdout or sys.stderr) to a logger.
-    Mainly used to prevent external functions from printing to console.
-    """
-    def __init__(self, logger:logging.Logger, level:str):
-        self.logger = logger
-        self.level = level
-
-    def write(self, message:str):
-        if message.strip():  # Ignore empty lines
-            self.logger.log(self.level, message.strip())
-
-    def flush(self):
-        pass  # Not needed for this use case
-
 
 def _parse_arguments() -> argparse.ArgumentParser:
     """
@@ -280,6 +265,8 @@ def _print_error_and_exit(
     _print_error('Exiting...')
     return 1
 
+
+
 def _move_files(
         source_directory:str,
         destination_directory:str) -> None:
@@ -299,6 +286,8 @@ def _move_files(
         src = os.path.join(source_directory, file)
         dst = os.path.join(destination_directory, file)
         shutil.move(src, dst)
+
+
 
 def _move_active_to_failed(
         download_number:int,
@@ -339,6 +328,7 @@ def _move_active_to_failed(
             logger)
     logger.info(f'Finished moving failed download '
                 f'{download_number+1}\'s files to failed files')
+
 
 
 def _move_active_to_final(
@@ -385,7 +375,7 @@ def _move_active_to_final(
                 target_dir = download_directory_videos
             elif file_extension in ['srt', 'vtt', 'ass']:
                 target_dir = download_directory_subtitles
-            elif str.endswith(file, 'info.json'):
+            elif str.endswith(file, '.json'):
                 target_dir = download_directory_data_info_json
             # Move file
             src = os.path.join(source_dir, file)
@@ -399,6 +389,7 @@ def _move_active_to_final(
             logger)
     logger.info(f'Download {download_number+1}: Finished moving '
                 f'files to their final directories.')
+
 
 
 def _get_id_from_url(url:str) -> str:
@@ -434,6 +425,7 @@ def _get_id_from_url(url:str) -> str:
     raise ValueError(f'Could not find ID in URL: {url}')
 
 
+
 def main():
     """
     The main script of this project.
@@ -451,9 +443,6 @@ def main():
     # Initialize the logger for this script
     logger = _setup_logger()
     logger.info(f'File structure checked/created successfully.')
-
-    original_stdout = sys.stdout
-    original_stderr = sys.stderr
 
     ### Interpret console commands
     video_urls = []
@@ -557,7 +546,7 @@ def main():
                 _move_active_to_failed(i, logger)
                 continue
             remaining_langauges = []
-            for langauge in config['subtitle_languages']:
+            for language in config['subtitle_languages']:
                 if language not in csv_subtitle_languages:
                     remaining_langauges.append(language)
             logger.info(f'Download {i+1}: Additional subtitle languages '
@@ -870,17 +859,11 @@ def main():
             subtitle_file_paths.append(os.path.join(
                 download_directory_in_progress_active,
                 subtitle_file_name))
-        # Disable printing to console
-        sys.stdout = StreamToLogger(logger, logging.INFO)
-        sys.stderr = StreamToLogger(logger, logging.ERROR)
 
         subtitles_embedding.add_subtitle_streams(
             video_file_path,
-            subtitle_file_paths)
-        
-        # Reenable printing to console
-        sys.stdout = original_stdout
-        sys.stderr = original_stderr
+            subtitle_file_paths,
+            None)
 
         ### Save information to central database
         database.add_to_database(

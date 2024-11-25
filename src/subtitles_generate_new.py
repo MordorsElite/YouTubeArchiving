@@ -1,10 +1,12 @@
+import os
 import warnings
 from datetime import timedelta
 from time import time
-import os
-from moviepy.editor import VideoFileClip
+
 import torch
 import whisper
+from moviepy.editor import VideoFileClip
+
 
 def _extract_audio_file(video_file:str, output_audio_file:str) -> None:
     """
@@ -27,6 +29,8 @@ def _extract_audio_file(video_file:str, output_audio_file:str) -> None:
     # Write audio to a file in m4a format
     video.audio.write_audiofile(output_audio_file, codec='aac')
 
+
+
 def _load_model(model_size:str='base') -> whisper.Whisper:
     """
     Load the Whisper model (base model works well for general purposes)
@@ -47,6 +51,8 @@ def _load_model(model_size:str='base') -> whisper.Whisper:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = whisper.load_model(model_size).to(device)
     return model
+
+
 
 def _get_word_by_word_timestamps(model:whisper.Whisper, audio_file:str
         ) -> dict[str, str | list]:
@@ -72,6 +78,8 @@ def _get_word_by_word_timestamps(model:whisper.Whisper, audio_file:str
     result = model.transcribe(audio_file, word_timestamps=True)
     return result
 
+
+
 def _format_timestamp(seconds:float) -> str:
     """
     Convert times to WebVTT format (HH:MM:SS.mmm)
@@ -91,6 +99,8 @@ def _format_timestamp(seconds:float) -> str:
     minutes, seconds = divmod(remainder, 60)
     milliseconds = int((seconds - int(seconds)) * 1000)
     return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}.{milliseconds:03}"
+
+
 
 def _generate_vtt(
         word_by_word_timestamps:dict[str, str | list], 
@@ -129,6 +139,8 @@ def _generate_vtt(
     with open(output_subtitle_file, "w") as file:
         file.write(vtt_content)
 
+
+
 def _delete_file(file_path:str) -> None:
     """
     Deletes the specified file
@@ -147,6 +159,8 @@ def _delete_file(file_path:str) -> None:
             print(f"File '{file_path}' does not exist.")
     except Exception as e:
         print(f"An error occurred while trying to delete the file: {e}")
+
+
 
 def generate_new_subtitles(
         video_file:str, 

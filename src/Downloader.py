@@ -1,7 +1,8 @@
-import yt_dlp
-import os
 import json
+import os
 from datetime import datetime
+
+import yt_dlp
 
 # Load config
 config_file_path = 'config/config.json'
