@@ -9,10 +9,38 @@ This project is not yet finished! Do not use it in it's current state. Core func
 
     So since storage is pretty cheap, I've decided to just start archiving. 
 
+## How to Use
+
+	The script (`main.py`) is currently meant to be run from the console.
+	Please run it from the main directory like this:
+	```
+	python src/main.py --url <your-url>
+	```
+
+	The following commandline arguments are available:
+		--url <your-url>			Provide the URL of a video, playlist or channel
+		--playlist					Flag for proper handling of the URL if it is a playlist URL
+		--channel					Flag for proper handling of the URL if it is a channel URL
+
+		--file <file-path>			Path to a text file containing one video url per line
+		--video-source <name>		Allows you to manually specify a video source. 
+									This is only used in the database to allow you to search for
+									videos from a specific source. Will be autofilled if video-urls
+									are provided via a playlist or channel url
+
+		--rate-limit <limit>		Override for the default rate limit in Megabyte per second
+		--max-height <height>		Override for the default max video height in Pixels
+
+		--postpone-post-processing	Flag to skip post-processing after the download.
+									Files will instead be moved into a seperate directory 
+									for later finalization
+
+	All directories and certain file names can be specified in the `config/config.cfg`.
+
 ## ToDo
-    [ ] Organisation:
+    [x] Organisation:
 		[x] Videos stored in single directory with uniform names
-		[ ] Searchable by title, channel, url, upload date, download date, subtitle content, download source
+		[x] Searchable by title, channel, url, upload date, download date, subtitle content, download source
 	[ ] Automation:
 		[ ] Access to channel to automatically download new additions to liked videos or watch-history
 	[x] Video quality:
@@ -33,3 +61,4 @@ This project is not yet finished! Do not use it in it's current state. Core func
 		- Download date
 		- Thumbnail
 		- Download Source (ie: Watch History, Liked Playlist)
+	[ ] Make Web interface for the script

@@ -161,16 +161,17 @@ def _parse_arguments():
 
     # Define arguments for downloading manually specified URL
     parser.add_argument(
+        "--url", type=str, required=False, 
+        help="URL to download"
+    )
+
+    parser.add_argument(
         "--playlist", action="store_true", required=False,
         help="FLAG: Download playlist at given URL"
     )
     parser.add_argument(
         "--channel", action="store_true", required=False,
         help="FLAG: Download channel at given URL"
-    )
-    parser.add_argument(
-        "--url", type=str, required=False, 
-        help="URL to download"
     )
 
     # Define argument for downloading URLs from file
@@ -179,11 +180,11 @@ def _parse_arguments():
         help="Text file containing URLs to download (one URL per line)"
     )
 
-    # Define argument for downloading URLs from file
+    # Define argument for specifying the video source
     parser.add_argument(
         "--video-source", type=str, required=False, 
-        help="Source for the given video. " +
-             "Especially useful when providing URLs via a file"
+        help="Manually specify the source for the given video. " +
+             "Mainly useful when providing URLs via a file"
     )
 
     # Define arguments for overriding the config
