@@ -162,7 +162,7 @@ def update_database(
 
     # Collect relevant information for CSV update from info.json
     with open(info_json_file, 'r', encoding='utf-8') as infile:
-        info_json = json.load(info_json)
+        info_json = json.load(infile)
     new_video_title = info_json['fulltitle']
     new_video_description = info_json['video_description']
 
@@ -246,18 +246,18 @@ def add_to_database(
 
     Parameters
     ----------
-    info_json_file (str): 
+    info_json_file: str
         The info.json file associated with the video id. 
         This is used to get most of the metadata for the video database.
-    video_file (str): 
+    video_file: str
         Name of the video file
-    subtitle_files (list[str]): 
+    subtitle_files: list[str] 
         Additional subtitle files
-    video_source (str): 
+    video_source: str
         What source the video download came from (ie. a playlist, channel or direct link)
     """
     with open(info_json_file, 'r', encoding='utf-8') as infile:
-        info_json = json.load(info_json)
+        info_json = json.load(infile)
 
     csv_data = {}
 
@@ -277,7 +277,8 @@ def add_to_database(
     csv_data['uploader_name'] = info_json['uploader']
 
     csv_data['upload_date'] = info_json['upload_date']
-    csv_data['download_date'] = datetime.date().strftime()
+    csv_data['download_date'] = \
+        datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S")
     csv_data['video_source'] = [video_source]
 
     subtitle_languages = []

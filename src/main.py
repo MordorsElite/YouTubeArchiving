@@ -112,14 +112,20 @@ def _check_file_structure() -> None:
 
 
 
-def _setup_logger(print_to_console:bool=False):
+def _setup_logger(print_to_console:bool=False) -> logging.Logger:
     """
     Create log-file and logger
 
-    @param print_to_console: If enabled, logs will both be written to the log
+    Parameters
+    ----------
+    print_to_console: bool
+        If enabled, logs will both be written to the log
         file and printed into console
 
-    @Return Logger (logging.Logger)
+    Returns
+    -------
+    logging.Logger:
+        Logger that allows logging to log file
     """
     # Create a timestamp for the filename
     timestamp = datetime.now().strftime("%Y.%m.%d_%H.%M.%S")
@@ -152,10 +158,15 @@ def _setup_logger(print_to_console:bool=False):
     return logger
 
 
-
-def _parse_arguments():
+def _parse_arguments() -> argparse.ArgumentParser:
     """
     Parse commandline arguments for use in the script
+
+    Returns
+    -------
+    argparse.ArgumentParser:
+        Parsed commandline arguments. 
+        Values are accessible using for example args.url
     """
     parser = argparse.ArgumentParser(description="Youtube Archiving")
 
@@ -209,11 +220,14 @@ def _parse_arguments():
 
 
 
-def _print_error(message):
+def _print_error(message:str) -> None:
     """
     Print error message to console in color red
 
-    @param message: Error message
+    Parameters
+    ----------
+        message: str
+        Error message
     """
     # ANSI escape code for red text
     RED = '\033[91m'
@@ -226,9 +240,17 @@ def _print_error_and_exit(
     """
     Prints error to log-file and console, then returns 1
 
-    @param message: Error message (str)
+    Parameters
+    ----------
+    message: str
+        Error message
+    logger: logging.Logger
+        For access to log file
 
-    @Returns 1
+    Returns
+    -------
+    1: int
+        Error code "1"
     """
     logger.error(message)
     logger.error('Exiting...')
@@ -238,13 +260,17 @@ def _print_error_and_exit(
 
 def _move_files(
         source_directory:str,
-        destination_directory:str):
+        destination_directory:str) -> None:
     """
     Move all files from source directory into destination directory.
     Will raise an error if moving files fails.
 
-    @param source_directory: Path to source directory (str)
-    @param destination_directory: Path to destination directory (str)
+    Parameters
+    ----------
+    source_directory: str
+        Path to source directory
+    destination_directory: str
+        Path to destination directory
     """
     files_to_move = os.listdir(source_directory)
     for file in files_to_move:
@@ -387,6 +413,10 @@ def _get_id_from_url(url:str) -> str:
 
 
 def main():
+    """
+    The main script of this project.
+    Takes the commandline arguments listed in README.md
+    """
     # Create environment
     try:
         _check_file_structure()
@@ -474,7 +504,7 @@ def main():
         
         # If video has already been downloaded
         except yt_dlp.utils.ExistingVideoReached as err:
-            logger.warning(f'Download {i+1} ({url}): Video already downloaded!')
+            logger.warning(f'Download {i+1}: ({url}) Video already downloaded!')
             logger.warning(f'Download {i+1}: {err}')
             logger.info(
                 f'Download {i+1}: '
@@ -551,12 +581,12 @@ def main():
 
         # Check if download was successful
         if ret_code == 0:
-            logger.info(f'Download {i+1} finished successfully! ({url})')
-            print(f'Download {i+1} finished successfully! ({url})')
+            logger.info(f'Download {i+1}: Finished successfully! ({url})')
+            print(f'Download {i+1}: Finished successfully! ({url})')
         else:
             # If download unsucessful
             # Logging
-            logger.error(f'Download {i+1} unsuccessful! ({url})')
+            logger.error(f'Download {i+1}: Unsuccessful! ({url})')
             download_failed_list = os.path.join(
                 config["download_directory_main"],
                 config["download_directory_data"],
@@ -572,7 +602,7 @@ def main():
         ### If Post-processing is set to "postponted", skip rest of the loop
         if args.postpone_post_processing:
             paused_dir = config['download_directory_in_progress_paused']
-            logger.info(f'Download {i+1} ({url}): Post-processing postponed. '
+            logger.info(f'Download {i+1}: ({url}) Post-processing postponed. '
                         f'Moving files to {paused_dir}.')
             try:
                 _move_files(
@@ -581,9 +611,9 @@ def main():
             except Exception as err:
                 return _print_error_and_exit(
                     f'Error while moving files to {paused_dir} '
-                    f'for download {i+1} ({url}): {err}',
+                    f'for download {i+1}: ({url}) {err}',
                     logger)
-            logger.info(f'Download {i+1} ({url}): '
+            logger.info(f'Download {i+1}: ({url}) '
                         f'Finished moving files to {paused_dir}.')
             download_paused_list = os.path.join(
                 config["download_directory_main"],
@@ -802,26 +832,26 @@ def main():
         
         # Embed subtitles into video (overwriting the original video)
         video_file_path = os.path.join(
-            config["download_directory_main"],
-            config["download_directory_videos"],
+            download_directory_in_progress_active,
             video_file)
+        subtitle_file_paths = []
+        for subtitle_file_name in subtitle_files:
+            subtitle_file_paths.append(os.path.join(
+                download_directory_in_progress_active,
+                subtitle_file_name))
         subtitles_embedding.add_subtitle_streams(
             video_file_path,
-            subtitle_files)
+            subtitle_file_paths)
 
         ### Save information to central database
-        download_directory_data_info_json = os.path.join(
-            config["download_directory_main"],
-            config["download_directory_data"],
-            config["download_directory_data_info_json"])
         database.add_to_database(
-            download_directory_data_info_json,
-            video_file_path,
-            subtitle_files,
+            info_json,
+            video_file,
+            subtitle_file_paths,
             video_source)
 
         ### Move finalized product to final directories
-        logger.info(f'Download {i+1} ({url}): Post processing finished!')
+        logger.info(f'Download {i+1}: ({url}) Post processing finished!')
         _move_active_to_final(i, logger)
 
 if __name__ == '__main__':

@@ -90,7 +90,6 @@ def _get_ydl_opts(
         ydl_opts['download_archive'] = download_archive # Add downloaded video ids to archive file
         ydl_opts['break_on_existing'] = True            # Don't download videos with archived ids
 
-    print(ydl_opts)
     return ydl_opts
 
 
@@ -200,7 +199,7 @@ def download_additional_content(
             'subtitlesformat': 'vtt/best',                  # Subtitle file format
         }
         ydl_opts.update(subtitle_opts)
-        
+
     return _download_video_by_url(url, ydl_opts)
 
 def download(
