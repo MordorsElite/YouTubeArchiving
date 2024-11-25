@@ -16,8 +16,8 @@ def _get_ydl_opts(
         subtitle_langs=['en', 'de'],
         download_archive:str=None, 
         rate_limit:int=None,
-        max_height:int=None
-        ) -> dict:
+        max_height:int=None,
+        verbose:bool=False) -> dict:
     """
     Generates yt-dlp download preferences
 
@@ -27,12 +27,14 @@ def _get_ydl_opts(
         Directory in which to put the downloaded files
     subtitle_langs: list[str]
         List of languages to download subtitles for
+    download_archive: str
+        File containing IDs of already downloaded files
     rate_limit: int
         Limit download speed in MB, default in config
     max_heigh: int
         Max Video Height in Pixels, defautt in config
-    download_archive: str
-        File containing IDs of already downloaded files
+    verbose: bool
+        If set to false, yt-dlp will not print to console
 
     Returns
     -------
@@ -66,6 +68,7 @@ def _get_ydl_opts(
         'outtmpl': output,                              # Filename format
  
         'ratelimit': rate_limit,                        # Limits download speed
+        'quiet': (not verbose),
 
         # Download and save metadata and subtitles
         'writeinfojson': True,                          # Write metadata to .info.json file
@@ -206,7 +209,8 @@ def download_additional_content(
 def download(
         url:str, 
         override_rate_limit:int=None, 
-        override_max_height:int=None) -> bool:
+        override_max_height:int=None,
+        verbose:bool=False) -> bool:
     """
     Main download function. Generates download preferences 
     from config and downloads video using yt-dlp.
@@ -219,6 +223,8 @@ def download(
         Override for the config value of the download rate limit in MB 
     override_max_height: int
         Override for the config value of the max video height in pixels
+    verbose: bool
+        If set to false, yt-dlp will not print to console
 
     Returns
     -------

@@ -458,7 +458,7 @@ def main():
     
     # Get video URLs
     if args.file is not None:
-        with open(args.file, 'r', 'utf-8') as url_file:
+        with open(args.file, 'r', encoding='utf-8') as url_file:
             for url in url_file.readlines():
                 video_urls.append(url)
         if video_urls in [None, []]:
@@ -520,7 +520,8 @@ def main():
                     f'rate_limit={args.rate_limit} '
                     f'and max_height={args.max_height}')
         try:
-            ret_code = downloader.download(url, args.rate_limit, args.max_height)
+            ret_code = downloader.download(
+                url, args.rate_limit, args.max_height, verbose)
         
         # If video has already been downloaded
         except yt_dlp.utils.ExistingVideoReached as err:
@@ -601,8 +602,8 @@ def main():
 
         # Check if download was successful
         if ret_code == 0:
-            logger.info(f'Download {i+1}: Finished successfully! ({url})')
-            print(f'Download {i+1}: Finished successfully! ({url})')
+            logger.info(f'Download {i+1}: Files downloaded successfully! ({url})')
+            print(f'Download {i+1}: Files downloaded successfully! ({url})')
         else:
             # If download unsucessful
             # Logging
@@ -860,6 +861,7 @@ def main():
                 download_directory_in_progress_active,
                 subtitle_file_name))
 
+        print(f'Download {i+1}: Embedding subtitles...')
         subtitles_embedding.add_subtitle_streams(
             video_file_path,
             subtitle_file_paths,

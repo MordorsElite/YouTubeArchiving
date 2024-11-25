@@ -134,7 +134,8 @@ def add_subtitle_streams(
         vcodec='copy', acodec='copy',
         map='0:t',
         **lang_metadata,
-        **scodec_dict)
+        **scodec_dict, 
+        loglevel="quiet")
 
     output_ffmpeg = ffmpeg.overwrite_output(output_ffmpeg)
 
