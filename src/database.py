@@ -333,5 +333,5 @@ def add_to_database(
     ### Write to CSV
     _write_to_csv(csv_data)
 
-
-
+if __name__ == '__main__':
+    pass

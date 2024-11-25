@@ -158,6 +158,23 @@ def _setup_logger(print_to_console:bool=False) -> logging.Logger:
     return logger
 
 
+class StreamToLogger:
+    """
+    Redirects writes to a stream (e.g., sys.stdout or sys.stderr) to a logger.
+    Mainly used to prevent external functions from printing to console.
+    """
+    def __init__(self, logger:logging.Logger, level:str):
+        self.logger = logger
+        self.level = level
+
+    def write(self, message:str):
+        if message.strip():  # Ignore empty lines
+            self.logger.log(self.level, message.strip())
+
+    def flush(self):
+        pass  # Not needed for this use case
+
+
 def _parse_arguments() -> argparse.ArgumentParser:
     """
     Parse commandline arguments for use in the script
@@ -212,7 +229,12 @@ def _parse_arguments() -> argparse.ArgumentParser:
     parser.add_argument(
         "--postpone-post-processing", action='store_true', required=False,
         help=f'Disables new subtitle generation etc. '+\
-            'Video will be moved to {paused_dir} instead of final directory'
+             f'Video will be moved to {paused_dir} instead of final directory'
+    )
+
+    parser.add_argument(
+        "--verbose", action="store_true", required=False,
+        help="FLAG: Makes the script print additional information to console"
     )
 
     # Parse and return arguments
@@ -430,6 +452,9 @@ def main():
     logger = _setup_logger()
     logger.info(f'File structure checked/created successfully.')
 
+    original_stdout = sys.stdout
+    original_stderr = sys.stderr
+
     ### Interpret console commands
     video_urls = []
     video_source = None
@@ -463,6 +488,9 @@ def main():
                     f'{"playlist" if args.playlist else "channel"}!')
         else:
             video_urls = [args.url]
+    
+    logger.info(f'Video URLs to download ({len(video_urls)} total):')
+    logger.info(video_urls)
 
     # Determine video source
     if args.video_source is not None:
@@ -479,8 +507,11 @@ def main():
         else:
             video_source = 'direct'
 
-    logger.info(f'Video URLs to download ({len(video_urls)} total):')
-    logger.info(video_urls)
+    verbose = False
+    if args.verbose:
+        verbose = True
+
+    
 
     # Loading this here as it's used all over
     download_directory_in_progress_active = os.path.join(
@@ -839,9 +870,17 @@ def main():
             subtitle_file_paths.append(os.path.join(
                 download_directory_in_progress_active,
                 subtitle_file_name))
+        # Disable printing to console
+        sys.stdout = StreamToLogger(logger, logging.INFO)
+        sys.stderr = StreamToLogger(logger, logging.ERROR)
+
         subtitles_embedding.add_subtitle_streams(
             video_file_path,
             subtitle_file_paths)
+        
+        # Reenable printing to console
+        sys.stdout = original_stdout
+        sys.stderr = original_stderr
 
         ### Save information to central database
         database.add_to_database(
@@ -853,6 +892,7 @@ def main():
         ### Move finalized product to final directories
         logger.info(f'Download {i+1}: ({url}) Post processing finished!')
         _move_active_to_final(i, logger)
+        print(f'Download {i+1}: Finished!')
 
 if __name__ == '__main__':
     main()

@@ -164,6 +164,11 @@ def generate_new_subtitles(
         Path and name of the resulting subtitle file. 
         If not given, the filename of video_file will be used
         with an appended '.en.new'
+
+    Returns
+    -------
+    dict[str, str]:
+        A dict with debug information about the generated subtitle file
     """
     debug_info = {}
 
