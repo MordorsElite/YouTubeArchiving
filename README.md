@@ -17,20 +17,30 @@ Please run it from the main directory like this:
 	python src/main.py --url <your-url>
 
 The following commandline arguments are available:
-	--url <your-url>			Provide the URL of a video, playlist or channel
-	--playlist					Flag for proper handling of the URL if it is a playlist URL
-	--channel					Flag for proper handling of the URL if it is a channel URL
 
-	--file <file-path>			Path to a text file containing one video url per line
-	--video-source <name>		Allows you to manually specify a video source. 
-								This is only used in the database to allow you to search for videos from a specific source. Will be autofilled if video-urls are provided via a playlist or channel url
+	--url <your-url>            Provide the URL of a video,
+	                            playlist or channel
+	--playlist                  Flag for proper handling of the URL 
+	                            if it is a playlist URL
+	--channel                   Flag for proper handling of the URL 
+	                            if it is a channel URL
 
-	--rate-limit <limit>		Override for the default rate limit in Megabyte per second
-	--max-height <height>		Override for the default max video height in Pixels
+	--file <file-path>          Path to a text file containing 
+	                            one video url per line
+	--video-source <name>       Allows you to manually specify a video source.
+	                            This is only used in the database to allow you
+	                            to search for videos from a specific source. 
+                                Will be autofilled if video-urls are provided
+                                via a playlist or channel url
 
-	--postpone-post-processing	Flag to skip post-processing after the download.
-								Files will instead be moved into a seperate directory 
-								for later finalization
+	--rate-limit <limit>        Override for the default rate limit
+	                            in Megabyte per second
+	--max-height <height>       Override for the default max video
+                                height in Pixels
+
+	--postpone-post-processing  Flag to skip post-processing after the download.
+                                Files will instead be moved into a seperate
+                                directory for later finalization
 
 All directories, certain file names and a number of other factors can be specified/changed in `config/config.json`.
 
