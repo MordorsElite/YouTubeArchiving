@@ -20,13 +20,23 @@ def _get_ydl_opts(
     """
     Generates yt-dlp download preferences
 
-    @param output_dir: Directory in which to put the downloaded files (str)
-    @param subtitle_langs: List of languages to download subtitles for (list[str])
-    @param rate_limit: Limit download speed in MB, default in config (int)
-    @param max_heigh: Max Video Height in Pixels, defautt in config (int)
-    @param download_archive: File containing IDs of already downloaded files (str)
+    Parameters
+    ----------
+    output_dir: str
+        Directory in which to put the downloaded files
+    subtitle_langs: list[str]
+        List of languages to download subtitles for
+    rate_limit: int
+        Limit download speed in MB, default in config
+    max_heigh: int
+        Max Video Height in Pixels, defautt in config
+    download_archive: str
+        File containing IDs of already downloaded files
 
-    @return: Dictionary of download preferences
+    Returns
+    -------
+    dict:
+        Dictionary of download preferences
     """
     output = 'YouTube ## %(uploader)s ## %(upload_date)s ## %(title)s ## %(id)s.%(ext)s'
     if output_dir is not None:
@@ -50,35 +60,35 @@ def _get_ydl_opts(
             f'bestaudio)'
         ),
 
-        'merge_output_format': 'mkv',                           # Merge output to MKV format
-        'windowsfilenames': True,                               # Use Windows-compatible filenames
-        'outtmpl': output,                                      # Filename format
+        'merge_output_format': 'mkv',                   # Merge output to MKV format
+        'windowsfilenames': True,                       # Use Windows-compatible filenames
+        'outtmpl': output,                              # Filename format
  
-        'ratelimit': rate_limit,                                # Limits download speed
+        'ratelimit': rate_limit,                        # Limits download speed
 
         # Download and save metadata and subtitles
-        'writeinfojson': True,                                  # Write metadata to .info.json file
-        'writethumbnail': True,                                 # Download thumbnail
-        'writesubtitles': True,                                 # Download subtitles
-        'writeautomaticsub': True,                              # Download auto-generated subtitles
-        'subtitleslangs': subtitle_langs,                       # Limit subtitles to English and German
-        'subtitlesformat': 'vtt/best',                          # Prefer VTT subtitle format
+        'writeinfojson': True,                          # Write metadata to .info.json file
+        'writethumbnail': True,                         # Download thumbnail
+        'writesubtitles': True,                         # Download subtitles
+        'writeautomaticsub': True,                      # Download auto-generated subtitles
+        'subtitleslangs': subtitle_langs,               # Limit subtitles to English and German
+        'subtitlesformat': 'vtt/best',                  # Prefer VTT subtitle format
 
         # Postprocessors to handle embedding options
         'postprocessors': [
             {
-                'key': 'FFmpegMetadata',                        # Embed metadata
+                'key': 'FFmpegMetadata',                # Embed metadata
             },
             {
-                'key': 'EmbedThumbnail',                        # Embed thumbnail into the file
+                'key': 'EmbedThumbnail',                # Embed thumbnail into the file
                 'already_have_thumbnail': False
             }
         ]
     }
 
     if download_archive is not None:
-        ydl_opts['download_archive'] = download_archive         # Add downloaded video ids to archive file
-        ydl_opts['break_on_existing'] = True                    # Don't download videos with archived ids
+        ydl_opts['download_archive'] = download_archive # Add downloaded video ids to archive file
+        ydl_opts['break_on_existing'] = True            # Don't download videos with archived ids
 
     print(ydl_opts)
     return ydl_opts
@@ -89,25 +99,38 @@ def _download_video_by_url(url:str, ydl_opts: dict) -> bool:
     """
     Downloads video using yt-dlp.
 
-    @param url: URL of the video to download (string)
-    @param ydl_opts: Contains all download preferences (dict)
+    Parameters
+    ----------
+    url: str
+        URL of the video to download
+    ydl_opts: dict
+        Contains all download preferences
 
-    @return success: Was the download successful (bool)
+    Returns
+    -------
+    0: If download was successful
+    1: If error occured during download
     """
-    success = False
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        success = ydl.download([url])
-    return success
+        return ydl.download([url])
 
 
 
-def get_video_urls_from_url(url:str) -> list[str]:
+def get_video_urls_from_url(url:str) -> tuple[list[str], dict[str:str]]:
     """
     Get a list of Video URLs from a Playlist or Channel
 
-    @param url: URL of a playlist or channel (str)
+    Parameters
+    ----------
+    url: str
+        URL of a playlist or channel
 
-    @Return video_urls: List of video urls (list[str])
+    Returns
+    -------
+    video_urls: list[str]
+        List of video urls 
+    url_info: dict[str:str]
+        Information about the url provided: id, channel, title
     """
     # Initialize the yt-dlp options
     ydl_opts = {
@@ -117,6 +140,7 @@ def get_video_urls_from_url(url:str) -> list[str]:
     
     # Create a list to store the URLs
     video_urls = []
+    url_info = {}
 
     # Use yt-dlp to extract information
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -127,10 +151,52 @@ def get_video_urls_from_url(url:str) -> list[str]:
             # 'entries' contains the list of videos in the playlist or channel
             for entry in result['entries']:
                 video_urls.append(entry['url'])  # Add the video URL to the list
-    
-    return video_urls
+        
+        url_info['id'] = result['id']
+        url_info['title'] = result['title']
+        url_info['channel'] = result['channel']
+
+    return (video_urls, url_info)
 
 
+def download_additional_content(
+        url:str,
+        output_dir:str=None, 
+        subtitle_langs:list[str]=None
+    ) -> bool:
+    """
+    Downloaded an updated info.json as well as additional subtitle files for
+    a previously completed download.
+
+    Parameters
+    ----------
+    url: str
+        URL of a playlist or channel
+    output_dir: str
+        Target directory for downloaded files
+    subtitle_langs: list[str]
+        List of languages to download subtitles in
+
+    Returns
+    -------
+    video_urls: list[str]
+        List of video urls 
+    url_info: dict[str:str]
+        Information about the url provided: id, channel, title
+    """
+    output = 'YouTube ## %(uploader)s ## %(upload_date)s ## %(title)s ## %(id)s.%(ext)s'
+    if output_dir is not None:
+        output = os.path.join(output_dir, output)
+
+    ydl_opts = {
+        'writeinfojson': True,                          # Write metadata info to a .info.json file
+        'writesubtitles': True,                         # Download subtitles
+        'writeautomaticsub': True,                      # Download auto-generated subtitles
+        'subtitleslangs': subtitle_langs,               # Specify subtitle languages
+        'subtitlesformat': 'vtt/best',                  # Subtitle file format
+        'outtmpl': output,                              # Output template for naming files
+        'skip_download': True,                          # Do not download the actual video
+    }
 
 def download(
         url:str, 
@@ -140,13 +206,21 @@ def download(
     Main download function. Generates download preferences 
     from config and downloads video using yt-dlp.
 
-    @param url: URL of the video to download (string)
-    @param override_rate_limit: Override for the config
-        value of the download rate limit in MB (int)
-    @param override_max_height: Override for the config
-        value of the max video height in pixels (int)
+    Parameters
+    ----------
+    url: str 
+        URL of the video to download
+    override_rate_limit: int
+        Override for the config value of the download rate limit in MB 
+    override_max_height: int
+        Override for the config value of the max video height in pixels
 
-    @Return Returns true if download was successful (bool)
+    Returns
+    -------
+    0: int
+        If download was successful
+    1: int
+        If error occured during download
     """
     # Config value for download directory
     active_download_directory = os.path.join(

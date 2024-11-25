@@ -8,6 +8,7 @@ from datetime import datetime
 
 import downloader
 import subtitles_embedding
+import database
 
 # Load config
 config_file_path = 'config/config.json'
@@ -176,6 +177,13 @@ def _parse_arguments():
         help="Text file containing URLs to download (one URL per line)"
     )
 
+    # Define argument for downloading URLs from file
+    parser.add_argument(
+        "--video-source", type=str, required=False, 
+        help="Source for the given video. " +
+             "Especially useful when providing URLs via a file"
+    )
+
     # Define arguments for overriding the config
     parser.add_argument(
         "--rate-limit", type=int, required=False, 
@@ -256,8 +264,10 @@ def main():
     logger = _setup_logger()
     logger.info(f'File structure checked/created successfully.')
 
-    # Interpret console commands
+    ### Interpret console commands
     video_urls = []
+    video_source = None
+    url_info = None
 
     if len(sys.argv) == 1:
         print("No arguments provided. Use --help for assistance.")
@@ -266,6 +276,7 @@ def main():
     logger.info('Input parameters:')
     logger.info(args)
     
+    # Get video URLs
     if args.file is not None:
         with open(args.file, 'r', 'utf-8') as url_file:
             for url in url_file.readlines():
@@ -276,16 +287,31 @@ def main():
     else: 
         if args.url is None:
             return _print_error_and_exit(logger,
-                'Neither URL nor URL-file provided!')
+                'Neither URL or URL-file provided!')
         
         if args.playlist or args.channel:
-            video_urls = downloader.get_video_urls_from_url(args.url)
+            video_urls, url_info = downloader.get_video_urls_from_url(args.url)
             if video_urls in [None, []]:
                 return _print_error_and_exit(logger,
                     f'No URLs found for '
                     f'{"playlist" if args.playlist else "channel"}!')
         else:
             video_urls = [args.url]
+
+    # Determine video source
+    if args.video_source is not None:
+        video_source = args.video_source
+    else:
+        if url_info is not None:
+            video_source_type = 'Playlist' if args.playlist else 'Channel'
+            id = url_info['id']
+            title = url_info['title']
+            channel = url_info['channel']
+            video_source = (
+                f'{video_source_type}:'
+                f'title={title}&id={id}&channel={channel}')
+        else:
+            video_source = 'direct'
 
     logger.info(f'Video URLs to download ({len(video_urls)} total):')
     logger.info(video_urls)
@@ -300,16 +326,18 @@ def main():
         config["download_directory_in_progress"],
         config["download_directory_in_progress_paused"])
     
-    # Loop over all videos to download:
+    ### Loop over all videos to download:
     for i, url in enumerate(video_urls):
         ### Download video
         logger.info(f'Download {i+1}: {url} with aditional parameters '
                     f'rate_limit={args.rate_limit} '
                     f'and max_height={args.max_height}')
-        failure = downloader.download(url, args.rate_limit, args.max_height)
-
+        try:
+            ret_code = downloader.download(url, args.rate_limit, args.max_height)
+        except Exception as err:
+            ret_code = True
         # Check if download was successful
-        if not failure:
+        if ret_code == 0:
             logger.info(f'Download {i+1} finished successfully! ({url})')
             print(f'Download {i+1} finished successfully! ({url})')
         else:
@@ -335,8 +363,7 @@ def main():
             try:
                 _move_files(
                     download_directory_in_progress_active,
-                    download_directory_in_progress_failed
-                )
+                    download_directory_in_progress_failed)
             except Exception as err:
                 return _print_error_and_exit(
                     f'Error while moving files to {failed_dir} '
@@ -344,6 +371,7 @@ def main():
                     logger)
             logger.info(f'Finished moving failed download {i+1}\'s '
                         f'files to failed files')
+            continue
             
         ### If Post-processing is set to "postponted", skip rest of the loop
         if args.postpone_post_processing:
@@ -353,8 +381,7 @@ def main():
             try:
                 _move_files(
                     download_directory_in_progress_active,
-                    download_directory_in_progress_paused
-                )
+                    download_directory_in_progress_paused)
             except Exception as err:
                 return _print_error_and_exit(
                     f'Error while moving files to {paused_dir} '
@@ -408,8 +435,7 @@ def main():
         # Load info.json
         info_json = os.path.join(
             download_directory_in_progress_active,
-            info_json
-        )
+            info_json)
         with open(info_json, 'r', encoding='utf-8') as info_file:
             info_data = json.load(info_file)
 
@@ -473,8 +499,7 @@ def main():
                 import subtitles_convert_existing as sub_convert
                 subtitle_file = os.path.join(
                     download_directory_in_progress_active,
-                    subtitle_file
-                )
+                    subtitle_file)
                                 
                 if language == 'en':
                     debug_info = sub_convert.generate_converted_subtitles(
@@ -508,8 +533,7 @@ def main():
             # If video file found, generate new Subtitles
             video_file_path = os.path.join(
                 download_directory_in_progress_active,
-                video_file
-            )
+                video_file)
             if video_file_path is not None and os.path.exists(video_file_path):
                 # Importing here to prevent unneccessary slowdown
                 # if the import is unused
@@ -581,12 +605,24 @@ def main():
             continue
         
         # Embed subtitles into video (overwriting the original video)
+        video_file_path = os.path.join(
+            config["download_directory_main"],
+            config["download_directory_videos"],
+            video_file)
         subtitles_embedding.add_subtitle_streams(
-            video_file,
-            subtitle_files
-        )
+            video_file_path,
+            subtitle_files)
 
         ### Save information to central database
+        download_directory_data_info_json = os.path.join(
+            config["download_directory_main"],
+            config["download_directory_data"],
+            config["download_directory_data_info_json"])
+        database.add_to_database(
+            download_directory_data_info_json,
+            video_file_path,
+            subtitle_files,
+            video_source)
 
         ### Move finalized product to final directories
         logger.info(f'Download {i+1} ({url}): Post processing finished!')

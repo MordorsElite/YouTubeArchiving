@@ -76,7 +76,7 @@ def generate_new_subtitles(video_file:str, output_subtitle_file:str=None) -> dic
     try:
         # Extract audio file
         temp_audio_file = f'{video_file}.temp.m4a'
-        _extract_audio_file(temp_audio_file)
+        _extract_audio_file(video_file, temp_audio_file)
         debug_info['audio_file_extraction'] = \
             f'Audio file {temp_audio_file} successfully extracted'
     except Exception as err:
