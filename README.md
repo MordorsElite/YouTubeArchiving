@@ -3,39 +3,36 @@
 This project is not yet finished! Do not use it in it's current state. Core functionality is still missing and a lot of bug-fixes are still to do.
 
 ## Motivation
-    Over the last years I have noticed more and more videos vanishing from the internet.
-    My liked playlist alone is missing dozens. Be it deleted channels, videos being privated
-    by the uploader or copyright disputes. It is just a shame to watch them disappear.
+Over the last years I have noticed more and more videos vanishing from the internet.
+My liked playlist alone is missing dozens. Be it deleted channels, videos being privated
+by the uploader or copyright disputes. It is just a shame to watch them disappear.
 
-    So since storage is pretty cheap, I've decided to just start archiving. 
+So since storage is pretty cheap, I've decided to just start archiving. A big focus of this script including good subtitles in the downloads. 
 
 ## How to Use
 
-	The script (`main.py`) is currently meant to be run from the console.
-	Please run it from the main directory like this:
-	```
+The script (`main.py`) is currently meant to be run from the console.
+Please run it from the main directory like this:
+
 	python src/main.py --url <your-url>
-	```
 
-	The following commandline arguments are available:
-		--url <your-url>			Provide the URL of a video, playlist or channel
-		--playlist					Flag for proper handling of the URL if it is a playlist URL
-		--channel					Flag for proper handling of the URL if it is a channel URL
+The following commandline arguments are available:
+	--url <your-url>			Provide the URL of a video, playlist or channel
+	--playlist					Flag for proper handling of the URL if it is a playlist URL
+	--channel					Flag for proper handling of the URL if it is a channel URL
 
-		--file <file-path>			Path to a text file containing one video url per line
-		--video-source <name>		Allows you to manually specify a video source. 
-									This is only used in the database to allow you to search for
-									videos from a specific source. Will be autofilled if video-urls
-									are provided via a playlist or channel url
+	--file <file-path>			Path to a text file containing one video url per line
+	--video-source <name>		Allows you to manually specify a video source. 
+								This is only used in the database to allow you to search for videos from a specific source. Will be autofilled if video-urls are provided via a playlist or channel url
 
-		--rate-limit <limit>		Override for the default rate limit in Megabyte per second
-		--max-height <height>		Override for the default max video height in Pixels
+	--rate-limit <limit>		Override for the default rate limit in Megabyte per second
+	--max-height <height>		Override for the default max video height in Pixels
 
-		--postpone-post-processing	Flag to skip post-processing after the download.
-									Files will instead be moved into a seperate directory 
-									for later finalization
+	--postpone-post-processing	Flag to skip post-processing after the download.
+								Files will instead be moved into a seperate directory 
+								for later finalization
 
-	All directories and certain file names can be specified in the `config/config.cfg`.
+All directories, certain file names and a number of other factors can be specified/changed in `config/config.json`.
 
 ## ToDo
     [x] Organisation:
