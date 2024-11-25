@@ -4,6 +4,8 @@ import logging
 import os
 import shutil
 import sys
+import yt_dlp
+import re
 from datetime import datetime
 
 import downloader
@@ -249,6 +251,38 @@ def _move_files(
         dst = os.path.join(destination_directory, file)
         shutil.move(src, dst)
 
+def _get_id_from_url(url:str) -> str:
+    """
+    Returns video id from a url
+
+    Parameters
+    ----------
+    url:str
+        URL to extract ID from
+
+    Returns
+    -------
+    id:str
+        ID of the video at the input URL
+
+    Errors
+    ------
+    ValueError:
+        If ID could not be found in URL
+    """
+    youtube_url_options = [
+        'https://youtu.be/',
+        'https://www.youtube.com/watch?v='
+    ]
+    for option in youtube_url_options:
+        if option not in url:
+            continue
+        url_without_domain = url[len(option):]
+        split_url_without_domain = re.split(r'[&?]', url_without_domain)
+        return split_url_without_domain[0]
+    
+    raise ValueError(f'Could not find ID in URL: {url}')
+
 
 def main():
     # Create environment
@@ -334,8 +368,28 @@ def main():
                     f'and max_height={args.max_height}')
         try:
             ret_code = downloader.download(url, args.rate_limit, args.max_height)
-        except Exception as err:
-            ret_code = True
+        # If video has already been downloaded
+        except yt_dlp.utils.ExistingVideoReached as err:
+            logger.warning(f'Download {i+1} ({url}): Video already downloaded!')
+            logger.warning(f'Download {i+1}: {err}')
+            logger.info(
+                f'Download {i+1}: '
+                f'Checking for additional content to download')
+            
+            video_id = _get_id_from_url(url)
+            try:
+                csv_subtitle_languages = json.loads(
+                    database.get_field_value_by_video_id(
+                        video_id,
+                        'subtitle_languages'))
+            except Exception as err:
+                logger.error(f'Download {i+1}: '
+                             f'Download of additional content failed')
+            remaining_langauges = []
+            for langauge in config['subtitle_languages']:
+                if language not in csv_subtitle_languages:
+                    remaining_langauges.append(language)
+
         # Check if download was successful
         if ret_code == 0:
             logger.info(f'Download {i+1} finished successfully! ({url})')

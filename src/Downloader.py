@@ -179,10 +179,8 @@ def download_additional_content(
 
     Returns
     -------
-    video_urls: list[str]
-        List of video urls 
-    url_info: dict[str:str]
-        Information about the url provided: id, channel, title
+    0: If download was successful
+    1: If error occured during download
     """
     output = 'YouTube ## %(uploader)s ## %(upload_date)s ## %(title)s ## %(id)s.%(ext)s'
     if output_dir is not None:
@@ -190,13 +188,20 @@ def download_additional_content(
 
     ydl_opts = {
         'writeinfojson': True,                          # Write metadata info to a .info.json file
-        'writesubtitles': True,                         # Download subtitles
-        'writeautomaticsub': True,                      # Download auto-generated subtitles
-        'subtitleslangs': subtitle_langs,               # Specify subtitle languages
-        'subtitlesformat': 'vtt/best',                  # Subtitle file format
         'outtmpl': output,                              # Output template for naming files
         'skip_download': True,                          # Do not download the actual video
     }
+
+    if subtitle_langs is not None and subtitle_opts != []:
+        subtitle_opts = {
+            'writesubtitles': True,                         # Download subtitles
+            'writeautomaticsub': True,                      # Download auto-generated subtitles
+            'subtitleslangs': subtitle_langs,               # Specify subtitle languages
+            'subtitlesformat': 'vtt/best',                  # Subtitle file format
+        }
+        ydl_opts.update(subtitle_opts)
+        
+    return _download_video_by_url(url, ydl_opts)
 
 def download(
         url:str, 
