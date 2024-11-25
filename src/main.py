@@ -251,6 +251,107 @@ def _move_files(
         dst = os.path.join(destination_directory, file)
         shutil.move(src, dst)
 
+def _move_active_to_failed(
+        download_number:int,
+        logger:logging.Logger) -> None:
+    """
+    Move files from active download directory into directory for
+    failed downloads
+
+    Parameters
+    ----------
+    download_number: int
+        Index of the download URL in the list of downloaded URLs
+        for logging purposes
+    logger: logging.Logger
+        Where to log the info/error messages for file movement
+    """
+    failed_dir = config['download_directory_in_progress_failed']
+    logger.info(f'Moving failed download {download_number+1}\'s '
+                f'files to {failed_dir}')
+    
+    download_directory_in_progress_active = os.path.join(
+        config["download_directory_main"],
+        config["download_directory_in_progress"],
+        config["download_directory_in_progress_active"])
+    download_directory_in_progress_failed = os.path.join(
+        config["download_directory_main"],
+        config["download_directory_in_progress"],
+        config["download_directory_in_progress_failed"])
+    
+    try:
+        _move_files(
+            download_directory_in_progress_active,
+            download_directory_in_progress_failed)
+    except Exception as err:
+        return _print_error_and_exit(
+            f'Error while moving files to {failed_dir} '
+            f'for download {download_number+1}: {err}',
+            logger)
+    logger.info(f'Finished moving failed download '
+                f'{download_number+1}\'s files to failed files')
+
+
+def _move_active_to_final(
+        download_number:int, 
+        logger:logging.Logger) -> None:
+    """
+    Move files from active download directory into the final
+    directories (different depending on file type)
+
+    Parameters
+    ----------
+    download_number: int
+        Index of the download URL in the list of downloaded URLs
+        for logging purposes
+    logger: logging.Logger
+        Where to log the info/error messages for file movement
+    """
+    logger.info(f'Download {download_number+1}: '
+                f'Moving files to final directory!')
+        
+    download_directory_in_progress_active = os.path.join(
+        config["download_directory_main"],
+        config["download_directory_in_progress"],
+        config["download_directory_in_progress_active"])
+    download_directory_videos = os.path.join(
+        config["download_directory_main"],
+        config["download_directory_videos"])
+    download_directory_subtitles = os.path.join(
+        config["download_directory_main"],
+        config["download_directory_subtitles"])
+    download_directory_data_info_json = os.path.join(
+        config["download_directory_main"],
+        config["download_directory_data"],
+        config["download_directory_data_info_json"])
+    
+    try:
+        source_dir = download_directory_in_progress_active
+        files_to_move = os.listdir(source_dir)
+        for file in files_to_move:
+            # Determine files final directory
+            target_dir = None
+            file_extension = str.split(file, '.')[-1]
+            if file_extension in ['mkv', 'mp4', 'webm']:
+                target_dir = download_directory_videos
+            elif file_extension in ['srt', 'vtt', 'ass']:
+                target_dir = download_directory_subtitles
+            elif str.endswith(file, 'info.json'):
+                target_dir = download_directory_data_info_json
+            # Move file
+            src = os.path.join(source_dir, file)
+            dst = os.path.join(target_dir, file)
+            shutil.move(src, dst)
+    except Exception as err:
+        return _print_error_and_exit(
+            f'Download {download_number+1}: '
+            f'Error while moving files to '
+            f'final directories: {err}',
+            logger)
+    logger.info(f'Download {download_number+1}: Finished moving '
+                f'files to their final directories.')
+
+
 def _get_id_from_url(url:str) -> str:
     """
     Returns video id from a url
@@ -362,12 +463,14 @@ def main():
     
     ### Loop over all videos to download:
     for i, url in enumerate(video_urls):
+        video_file = None
         ### Download video
         logger.info(f'Download {i+1}: {url} with aditional parameters '
                     f'rate_limit={args.rate_limit} '
                     f'and max_height={args.max_height}')
         try:
             ret_code = downloader.download(url, args.rate_limit, args.max_height)
+        
         # If video has already been downloaded
         except yt_dlp.utils.ExistingVideoReached as err:
             logger.warning(f'Download {i+1} ({url}): Video already downloaded!')
@@ -375,7 +478,11 @@ def main():
             logger.info(
                 f'Download {i+1}: '
                 f'Checking for additional content to download')
-            
+            # Download additional subtitles if they were not 
+            # already downloaded before. Also download a new version 
+            # of info.json to compare title and description
+
+            # Compare downloaded subtitle languages
             video_id = _get_id_from_url(url)
             try:
                 csv_subtitle_languages = json.loads(
@@ -385,10 +492,61 @@ def main():
             except Exception as err:
                 logger.error(f'Download {i+1}: '
                              f'Download of additional content failed')
+                _move_active_to_failed(i, logger)
+                continue
             remaining_langauges = []
             for langauge in config['subtitle_languages']:
                 if language not in csv_subtitle_languages:
                     remaining_langauges.append(language)
+            logger.info(f'Download {i+1}: Additional subtitle languages '
+                        f'{remaining_langauges} still needed. Downloading...')
+            # Download additional languages and new info.json
+            ret_code = downloader.download_additional_content(
+                url,
+                download_directory_in_progress_active,
+                remaining_langauges if remaining_langauges != [] else None)
+            if ret_code == 0:
+                logger.info(f'Download {i+1}: Download of additional '
+                            f'content successfull')
+                # Rename new info.json by appending current date to name
+                new_downloaded_files = \
+                    os.listdir(download_directory_in_progress_active)
+                for file_name in new_downloaded_files:
+                    if str.endswith(file_name, '.json'):
+                        new_info_json = os.path.join(
+                            download_directory_in_progress_active,
+                            file_name)
+                        break
+                renamed_info_json = (new_info_json[:-5] +
+                    ' ## ' +
+                    datetime.now().strftime("%Y.%m.%d_%H.%M.%S") +
+                    new_info_json[-5:])
+                os.rename(new_info_json, renamed_info_json)
+
+                # Collect subtitle files
+                subtitle_files = []
+                for file_name in new_downloaded_files:
+                    file_extension = str.split(file_name, '.')[-1]
+                    if file_extension in ['srt', 'vtt', 'ass']:
+                        subtitle_files.append(file_name)
+
+                # Update database with new content/info
+                logger.info(f'Download {i+1}: Updating database...')
+                database.update_database(
+                    video_id,
+                    video_source,
+                    renamed_info_json,
+                    subtitle_files)
+                logger.info(f'Download {i+1}: Database updated!')
+                
+                # Move files to final directories
+                _move_active_to_final(i, logger)
+                continue
+            else:
+                logger.error(f'Download {i+1}: Error while downloading '
+                             f'additional content')
+                _move_active_to_failed(i, logger)
+                continue
 
         # Check if download was successful
         if ret_code == 0:
@@ -407,24 +565,7 @@ def main():
             logger.info(f'Failed download {i+1}\'s URL added to failed list')
 
             # Move Files from faild download into the designated directory
-            failed_dir = config['download_directory_in_progress_failed']
-            logger.info(f'Moving failed download {i+1}\'s '
-                        f'files to {failed_dir}')
-            download_directory_in_progress_failed = os.path.join(
-                config["download_directory_main"],
-                config["download_directory_in_progress"],
-                config["download_directory_in_progress_failed"])
-            try:
-                _move_files(
-                    download_directory_in_progress_active,
-                    download_directory_in_progress_failed)
-            except Exception as err:
-                return _print_error_and_exit(
-                    f'Error while moving files to {failed_dir} '
-                    f'for download {i+1} ({url}): {err}',
-                    logger)
-            logger.info(f'Finished moving failed download {i+1}\'s '
-                        f'files to failed files')
+            _move_active_to_failed(i, logger)
             continue
             
         ### If Post-processing is set to "postponted", skip rest of the loop
@@ -680,43 +821,7 @@ def main():
 
         ### Move finalized product to final directories
         logger.info(f'Download {i+1} ({url}): Post processing finished!')
-        logger.info(f'Download {i+1}: Moving files to final directory!')
-        
-        download_directory_videos = os.path.join(
-            config["download_directory_main"],
-            config["download_directory_videos"])
-        download_directory_subtitles = os.path.join(
-            config["download_directory_main"],
-            config["download_directory_subtitles"])
-        download_directory_data_info_json = os.path.join(
-            config["download_directory_main"],
-            config["download_directory_data"],
-            config["download_directory_data_info_json"])
-        
-        try:
-            source_dir = download_directory_in_progress_active
-            files_to_move = os.listdir(source_dir)
-            for file in files_to_move:
-                # Determine files final directory
-                target_dir = None
-                file_extension = str.split(file, '.')[-1]
-                if file_extension in ['mkv', 'mp4', 'webm']:
-                    target_dir = download_directory_videos
-                elif file_extension in ['srt', 'vtt', 'ass']:
-                    target_dir = download_directory_subtitles
-                elif str.endswith(file, 'info.json'):
-                    target_dir = download_directory_data_info_json
-                # Move file
-                src = os.path.join(source_dir, file)
-                dst = os.path.join(target_dir, file)
-                shutil.move(src, dst)
-        except Exception as err:
-            return _print_error_and_exit(
-                f'Download {i+1}: Error while moving files to '
-                f'final directories: {err}',
-                logger)
-        logger.info(f'Download {i+1} ({url}): Finished moving '
-                    f'files to their final directories.')
+        _move_active_to_final(i, logger)
 
 if __name__ == '__main__':
     main()
