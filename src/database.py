@@ -20,9 +20,10 @@ def _sanitize_value(value):
         Value to sanatize
     """
     if isinstance(value, (list, dict)):
-        return json.dumps(value)  # Serialize lists/dicts into JSON
+        return json.dumps(value)            # Serialize lists/dicts into JSON
     elif isinstance(value, str):
-        return value.replace('\0', '')  # Remove null bytes (if any)
+        value = value.replace('\n', ' ')    # Remove all newlines
+        return value.replace('\0', '')      # Remove null bytes (if any)
     else:
         return value
 
@@ -169,19 +170,20 @@ def update_database(
     # Collect relevant information for CSV update from input
     new_video_source = video_source
 
-    subtitle_languages = []
-    subtitle_formats = []
-    for file in subtitle_files:
-        sub_file_split = str.split(file, '.')
-        if sub_file_split[-2] in config['subtitle_languages']:
-            subtitle_formats.append(sub_file_split[-2])
-            subtitle_languages.append(sub_file_split[-2])
-        else:
-            subtitle_formats.append(
-                sub_file_split[-3] + '.' + sub_file_split[-2])
-            subtitle_languages.append(sub_file_split[-3])
-    new_subtitle_languages = subtitle_languages
-    new_subtitle_formats = subtitle_formats
+    if subtitle_files is not None:
+        subtitle_languages = []
+        subtitle_formats = []
+        for file in subtitle_files:
+            sub_file_split = str.split(file, '.')
+            if sub_file_split[-2] in config['subtitle_languages']:
+                subtitle_formats.append(sub_file_split[-2])
+                subtitle_languages.append(sub_file_split[-2])
+            else:
+                subtitle_formats.append(
+                    sub_file_split[-3] + '.' + sub_file_split[-2])
+                subtitle_languages.append(sub_file_split[-3])
+        new_subtitle_languages = subtitle_languages
+        new_subtitle_formats = subtitle_formats
 
     # Find the row and check the value
     row_found = False
@@ -208,19 +210,20 @@ def update_database(
             # Update video source list
             csv_video_source_list = json.loads(row['video_source'])
             if new_video_source not in csv_video_source_list:
-                csv_video_source_list.append(new_video_source)
+                csv_video_source_list += new_video_source
                 row['video_source'] = json.dumps(csv_video_source_list)
 
-            # Update Subtitle Languages
-            csv_subtitle_language_list = json.loads(row['subtitle_languages'])
-            if new_subtitle_languages not in csv_subtitle_language_list:
-                csv_subtitle_language_list.append(new_subtitle_languages)
+            if subtitle_files is not None:
+                # Update Subtitle Languages
+                csv_subtitle_language_list = json.loads(row['subtitle_languages'])
+                csv_subtitle_language_list += (new_subtitle_languages)
+                csv_csv_subtitle_language_list = list(set(csv_subtitle_language_list))
                 row['subtitle_languages'] = json.dumps(csv_subtitle_language_list)
 
-            # Update Subtitle Formats
-            csv_subtitle_format_list = json.loads(row['subtitle_formats'])
-            if new_subtitle_formats not in csv_subtitle_format_list:
-                csv_subtitle_format_list.append(new_subtitle_formats)
+                # Update Subtitle Formats
+                csv_subtitle_format_list = json.loads(row['subtitle_formats'])
+                csv_subtitle_format_list += new_subtitle_formats
+                csv_subtitle_format_list = list(set(csv_subtitle_format_list))
                 row['subtitle_languages'] = json.dumps(csv_subtitle_format_list)
 
             break
@@ -292,7 +295,7 @@ def add_to_database(
             subtitle_formats.append(
                 sub_file_split[-3] + '.' + sub_file_split[-2])
             subtitle_languages.append(sub_file_split[-3])
-    csv_data['subtitle_languages'] = subtitle_languages
+    csv_data['subtitle_languages'] = list(set(subtitle_languages))
     csv_data['subtitle_formats'] = subtitle_formats
 
     csv_data['video_description'] = {
@@ -334,4 +337,27 @@ def add_to_database(
     _write_to_csv(csv_data)
 
 if __name__ == '__main__':
-    pass
+    possible_fields = [
+        'video_id',
+        'video_title',
+        'video_language',
+        'video_length',
+        'video_file',
+        'video_file_size',
+        'channel_id',
+        'channel_name',
+        'uploader_id',
+        'uploader_name',
+        'upload_date',
+        'download_date',
+        'video_source',
+        'subtitle_languages',
+        'subtitle_formats',
+        'video_description',
+        'video_captions_full'
+    ]
+    for field in possible_fields:
+        value = get_field_value_by_video_id(
+            'wXcS9oD1_i8',
+            field)
+        print(f'{field} : {value}')
