@@ -217,6 +217,56 @@ def _split_sentence_into_subtitle_lines(sentence:str, max_line_length=42) -> lis
 
 
 
+def _timestamp_to_ms(timestamp: str) -> int:
+    """
+    Convert a timestamp in the format HH:MM:SS.mmm to milliseconds.
+
+    Parameters
+    ----------
+    timestamp: str
+        Timestamp in WebVTT format HH:MM:SS.mmm
+    
+    Returns
+    -------
+    int:
+        Time of timestamp in milliseconds
+    """
+    hours, minutes, seconds = timestamp.split(":")
+    seconds, milliseconds = seconds.split(".")
+    total_ms = (
+        int(hours) * 3600 * 1000 +
+        int(minutes) * 60 * 1000 +
+        int(seconds) * 1000 +
+        int(milliseconds)
+    )
+    return total_ms
+
+
+
+def _ms_to_timestamp(ms: int) -> str:
+    """
+    Convert milliseconds to a timestamp in the format HH:MM:SS.mmm.
+
+    Parameters
+    ----------
+    milliseconds: int
+        Time in milliseconds
+    
+    Returns
+    -------
+    str:
+        Timestamp in WebVTT format HH:MM:SS.mmm
+    """
+    hours = ms // (3600 * 1000)
+    ms %= 3600 * 1000
+    minutes = ms // (60 * 1000)
+    ms %= 60 * 1000
+    seconds = ms // 1000
+    milliseconds = ms % 1000
+    return f"{hours:02}:{minutes:02}:{seconds:02}.{milliseconds:03}"
+
+
+
 def _get_token_list(subtitle_file:str) -> list[TimedToken]:
     """
     Returns the full list of TimedTokens contained in the given subtitle file.
@@ -268,18 +318,44 @@ def _get_token_list(subtitle_file:str) -> list[TimedToken]:
                 start = block_start_time
             if end is None:
                 end = block_end_time
-            list_of_all_tokens.append(TimedToken(start, end, token))
+            # Try to split the word by delimiter characters. 
+            # If successful, split into multiple tokens
+            # This prevents errors for tokens like "12.99"
+            delimiters = r"[;:!?.]"
+            split_token = re.split(delimiters, token)
+            if len(split_token) > 1:
+                start_ms = _timestamp_to_ms(re.sub(r'[<>]', '', start))
+                end_ms = _timestamp_to_ms(re.sub(r'[<>]', '', end))
+                delta_in_ms = end_ms - start_ms
+                delta_per_token = delta_in_ms // len(split_token)
+                for i, sub_token in enumerate(split_token):
+                    list_of_all_tokens.append(TimedToken(
+                        _ms_to_timestamp(start_ms + (i * delta_per_token)),
+                        _ms_to_timestamp(start_ms + (i+1)*delta_per_token),
+                        sub_token))
+            else: 
+                list_of_all_tokens.append(TimedToken(start, end, token))
 
     # Remove duplicate tokens
     duplicate_token_indexes = []
+    # While this version runs in O(n), unfortunantely it does not
+    # adequately cover the case of sub_tokens
+    #for i in range(len(list_of_all_tokens) - 1):
+    #    current_token = list_of_all_tokens[i]
+    #    next_token = list_of_all_tokens[i+1]
+    #
+    #    if (current_token.token == next_token.token and 
+    #        current_token.end == next_token.start):
+    #        current_token.end = next_token.start
+    #        duplicate_token_indexes.append(i+1)
     for i in range(len(list_of_all_tokens) - 1):
-        current_token = list_of_all_tokens[i]
-        next_token = list_of_all_tokens[i+1]
-
-        if (current_token.token == next_token.token and 
-            current_token.end == next_token.start):
-            current_token.end = next_token.start
-            duplicate_token_indexes.append(i+1)
+        for j in range(i+1, len(list_of_all_tokens)):
+            current_token = list_of_all_tokens[i]
+            next_token = list_of_all_tokens[j]
+            if (current_token.token == next_token.token and 
+                current_token.end == next_token.start):
+                list_of_all_tokens[i].end = next_token.end
+                duplicate_token_indexes.append(i+1)
 
     return [token for idx, token in enumerate(list_of_all_tokens)
             if idx not in duplicate_token_indexes]

@@ -215,7 +215,7 @@ def update_database(
             # Update video source list
             csv_video_source_list = json.loads(row['video_source'])
             if new_video_source not in csv_video_source_list:
-                csv_video_source_list += new_video_source
+                csv_video_source_list.append(new_video_source)
                 row['video_source'] = json.dumps(csv_video_source_list)
 
             if subtitle_files is not None:
@@ -267,13 +267,18 @@ def add_to_database(
     with open(info_json_file, 'r', encoding='utf-8') as infile:
         info_json = json.load(infile)
 
+    try:
+        video_language = info_json['language']
+    except:
+        video_language = 'unknown'
+
     csv_data = {}
 
     csv_data['video_id'] = info_json['id']
     csv_data['video_title'] = {
         datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S"): 
         info_json['fulltitle']}
-    csv_data['video_language'] = info_json['language']
+    csv_data['video_language'] = video_language
     csv_data['video_length'] = info_json['duration']
 
     csv_data['video_file'] = video_file

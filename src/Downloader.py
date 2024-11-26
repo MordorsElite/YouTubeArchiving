@@ -17,6 +17,7 @@ def _get_ydl_opts(
         download_archive:str=None, 
         rate_limit:int=None,
         max_height:int=None,
+        output_template:str=None,
         verbose:bool=False) -> dict:
     """
     Generates yt-dlp download preferences
@@ -33,6 +34,8 @@ def _get_ydl_opts(
         Limit download speed in MB, default in config
     max_heigh: int
         Max Video Height in Pixels, defautt in config
+    output_template: str
+        Overwrite default autput template
     verbose: bool
         If set to false, yt-dlp will not print to console
 
@@ -41,7 +44,10 @@ def _get_ydl_opts(
     dict:
         Dictionary of download preferences
     """
-    output = 'YouTube ## %(uploader)s ## %(upload_date)s ## %(title)s ## %(id)s.%(ext)s'
+    if output_template is not None:
+        output = output_template
+    else:
+        output = 'YouTube ## %(uploader)s ## %(upload_date)s ## %(title)s ## %(id)s.%(ext)s'
     if output_dir is not None:
         output = os.path.join(output_dir, output)
     
@@ -66,9 +72,10 @@ def _get_ydl_opts(
         'merge_output_format': 'mkv',                   # Merge output to MKV format
         'windowsfilenames': True,                       # Use Windows-compatible filenames
         'outtmpl': output,                              # Filename format
+        'windowsfilenames': True,                       # Force Filenames to be windows compatible
  
         'ratelimit': rate_limit,                        # Limits download speed
-        'quiet': (not verbose),
+        'noplaylist': True,                             # Don't download playlists
 
         # Download and save metadata and subtitles
         'writeinfojson': True,                          # Write metadata to .info.json file
@@ -93,6 +100,9 @@ def _get_ydl_opts(
     if download_archive is not None:
         ydl_opts['download_archive'] = download_archive # Add downloaded video ids to archive file
         ydl_opts['break_on_existing'] = True            # Don't download videos with archived ids
+
+    if not verbose:
+        ydl_opts['quiet'] = True                        # Don't show console output']
 
     return ydl_opts
 
@@ -162,6 +172,31 @@ def get_video_urls_from_url(url:str) -> tuple[list[str], dict[str:str]]:
     return (video_urls, url_info)
 
 
+
+def extract_info(url:str):
+    """
+    Gather yt-dlp data about available download for URL.
+
+    Parameters
+    ----------
+    url: str
+        URL to gather data for
+
+    Returns
+    -------
+    (Any | dict[str, Any] | None)
+    """
+    ydl_opts = {
+        'quiet': True,
+        'outtmpl': 'YouTube ## %(uploader)s ## %(upload_date)s ## %(title)s ## %(id)s.%(ext)s'
+    }
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        return ydl.extract_info(url, download=False)
+
+
+
+
 def download_additional_content(
         url:str,
         output_dir:str=None, 
@@ -210,6 +245,7 @@ def download(
         url:str, 
         override_rate_limit:int=None, 
         override_max_height:int=None,
+        output_template:str=None,
         verbose:bool=False) -> bool:
     """
     Main download function. Generates download preferences 
@@ -223,6 +259,8 @@ def download(
         Override for the config value of the download rate limit in MB 
     override_max_height: int
         Override for the config value of the max video height in pixels
+    output_template: str
+        Template for the output file name
     verbose: bool
         If set to false, yt-dlp will not print to console
 
@@ -260,7 +298,9 @@ def download(
         config["subtitle_languages"],
         download_archive_file,
         download_rate_limit,
-        max_video_height
+        max_video_height,
+        output_template,
+        verbose
     )
 
     return _download_video_by_url(url, ydl_opts)

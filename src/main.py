@@ -141,7 +141,7 @@ def _setup_logger(print_to_console:bool=False) -> logging.Logger:
     )
 
     # Define log-file handlers
-    handlers = [logging.FileHandler(log_file)]      # Log to file
+    handlers = [logging.FileHandler(log_file, encoding='utf-8')] # Log to file
     if print_to_console:
         handlers.append(logging.StreamHandler())    # Optional: Log to console
     
@@ -426,6 +426,25 @@ def _get_id_from_url(url:str) -> str:
 
 
 
+def _replace_non_ascii_with_underscore(input_string):
+    """
+    Replaces all characters in the input string that require UTF-8 to parse
+    (non-ASCII characters) with underscores.
+    
+    Parameters
+    ----------
+    input_string: str
+        The string to process.
+    
+    Returns
+    -------
+    str:
+        String with non-ASCII characters replaced by underscores.
+    """
+    return ''.join(char if ord(char) < 128 else '_' for char in input_string)
+
+
+
 def main():
     """
     The main script of this project.
@@ -480,6 +499,7 @@ def main():
     
     logger.info(f'Video URLs to download ({len(video_urls)} total):')
     logger.info(video_urls)
+    print(f'Video URLs to download ({len(video_urls)} total)')
 
     # Determine video source
     if args.video_source is not None:
@@ -520,8 +540,14 @@ def main():
                     f'rate_limit={args.rate_limit} '
                     f'and max_height={args.max_height}')
         try:
+            # Get potential name of downloaded files
+            download_info = downloader.extract_info(url)
+            output_name = _replace_non_ascii_with_underscore(
+                download_info['fulltitle'])
+            
+            # Start actual download
             ret_code = downloader.download(
-                url, args.rate_limit, args.max_height, verbose)
+                url, args.rate_limit, args.max_height, output_name, verbose)
         
         # If video has already been downloaded
         except yt_dlp.utils.ExistingVideoReached as err:
@@ -599,6 +625,23 @@ def main():
                              f'additional content')
                 _move_active_to_failed(i, logger)
                 continue
+        except yt_dlp.postprocessor.ffmpeg.FFmpegPostProcessorError as err:
+            logger.error(f'Download {i+1}: FFMPEG error! ({url})')
+            logger.error(f'Download {i+1}: {err}')
+
+            problematic_file_names = os.listdir(
+                download_directory_in_progress_active)
+            for file_name in problematic_file_names:
+                problematic_file = os.path.join(
+                    download_directory_in_progress_active,
+                    file_name)
+                sanitized_file = os.path.join(
+                    download_directory_in_progress_active,
+                    _replace_non_ascii_with_underscore(file_name))
+                os.rename(problematic_file, sanitized_file)
+
+            
+                
 
         # Check if download was successful
         if ret_code == 0:
@@ -757,9 +800,9 @@ def main():
                         subtitle_file, True, False, False)
                 for key, message in debug_info.items():
                     if str.startswith(message, 'Error'):
-                        logger.error(f'{key}: {message}')
+                        logger.error(f'Download {i+1}: {key}: {message}')
                     else:
-                        logger.info(f'{key}: {message}')
+                        logger.info(f'Download {i+1}: {key}: {message}')
 
         # Downloaded video does NOT have automatic or manual captions
         # If this is the case and the missing langauge is English,
@@ -790,9 +833,9 @@ def main():
                     video_file_path)
                 for key, message in debug_info.items():
                     if str.startswith(message, 'Error'):
-                        logger.error(f'{key}: {message}')
+                        logger.error(f'Download {i+1}: {key}: {message}')
                     else:
-                        logger.info(f'{key}: {message}')
+                        logger.info(f'Download {i+1}: {key}: {message}')
 
         ### Subtitle embedding 
         # Embed subtitle files into video file

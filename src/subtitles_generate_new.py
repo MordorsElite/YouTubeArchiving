@@ -197,6 +197,8 @@ def generate_new_subtitles(
             f'Audio file {temp_audio_file} failed to extract {err}'
         
     # Generate Transcription
+    print('Transcribing...')    # Added print statement as it otherwise looks like
+                                # the script is frozen
     try:
         model = _load_model()
         result = _get_word_by_word_timestamps(model, temp_audio_file)
