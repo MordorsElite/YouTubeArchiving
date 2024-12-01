@@ -72,7 +72,6 @@ def _get_ydl_opts(
         'merge_output_format': 'mkv',                   # Merge output to MKV format
         'windowsfilenames': True,                       # Use Windows-compatible filenames
         'outtmpl': output,                              # Filename format
-        'windowsfilenames': True,                       # Force Filenames to be windows compatible
  
         'ratelimit': rate_limit,                        # Limits download speed
         'noplaylist': True,                             # Don't download playlists
@@ -187,7 +186,7 @@ def extract_info(url:str):
     (Any | dict[str, Any] | None)
     """
     ydl_opts = {
-        'quiet': True,
+        'noplaylist': True,
         'outtmpl': 'YouTube ## %(uploader)s ## %(upload_date)s ## %(title)s ## %(id)s.%(ext)s'
     }
 

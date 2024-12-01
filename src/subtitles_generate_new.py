@@ -2,6 +2,7 @@ import os
 import warnings
 from datetime import timedelta
 from time import time
+import json
 
 import torch
 import whisper
@@ -136,7 +137,7 @@ def _generate_vtt(
         start_time = end_time  # Update start time for the next word
 
     # Save to a .vtt file
-    with open(output_subtitle_file, "w") as file:
+    with open(output_subtitle_file, "w", encoding='utf-8') as file:
         file.write(vtt_content)
 
 

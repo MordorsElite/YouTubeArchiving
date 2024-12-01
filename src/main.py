@@ -542,8 +542,18 @@ def main():
         try:
             # Get potential name of downloaded files
             download_info = downloader.extract_info(url)
+            with open('temp.json', 'w', encoding='utf-8') as outfile:
+                json.dump(download_info, outfile, indent=4)
+            try: 
+                title = download_info['fulltitle']
+            except:
+                title = download_info['title']
+            video_id = download_info['id']
+            video_uploader = download_info['uploader']
+            video_upload_date = download_info['upload_date']
             output_name = _replace_non_ascii_with_underscore(
-                download_info['fulltitle'])
+                f'YouTube ## {video_uploader} ## {video_upload_date} '
+                f'## {title} ## {video_id}.mkv')
             
             # Start actual download
             ret_code = downloader.download(
