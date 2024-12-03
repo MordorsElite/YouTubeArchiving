@@ -155,9 +155,10 @@ def _delete_file(file_path:str) -> None:
         # Check if the file exists
         if os.path.isfile(file_path):
             os.remove(file_path)  # Delete the file
-            print(f"File '{file_path}' has been deleted.")
+            #print(f"File '{file_path}' has been deleted.")
         else:
-            print(f"File '{file_path}' does not exist.")
+            #print(f"File '{file_path}' does not exist.")
+            raise FileNotFoundError(f'{file_path} does not Exist!')
     except Exception as e:
         print(f"An error occurred while trying to delete the file: {e}")
 
@@ -198,8 +199,8 @@ def generate_new_subtitles(
             f'Audio file {temp_audio_file} failed to extract {err}'
         
     # Generate Transcription
-    print('Transcribing...')    # Added print statement as it otherwise looks like
-                                # the script is frozen
+    print('Transcribing...') 
+    
     try:
         model = _load_model()
         result = _get_word_by_word_timestamps(model, temp_audio_file)

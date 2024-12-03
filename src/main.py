@@ -328,6 +328,48 @@ def _move_active_to_failed(
             logger)
     logger.info(f'Finished moving failed download '
                 f'{download_number+1}\'s files to failed files')
+    
+
+
+def _move_active_to_paused(
+        download_number:int,
+        logger:logging.Logger) -> None:
+    """
+    Move files from active download directory into directory for
+    paused downloads
+
+    Parameters
+    ----------
+    download_number: int
+        Index of the download URL in the list of downloaded URLs
+        for logging purposes
+    logger: logging.Logger
+        Where to log the info/error messages for file movement
+    """
+    paused_dir = config['download_directory_in_progress_paused']
+    logger.info(f'Moving download {download_number+1}\'s '
+                f'files to {paused_dir}')
+    
+    download_directory_in_progress_active = os.path.join(
+        config["download_directory_main"],
+        config["download_directory_in_progress"],
+        config["download_directory_in_progress_active"])
+    download_directory_in_progress_paused = os.path.join(
+        config["download_directory_main"],
+        config["download_directory_in_progress"],
+        config["download_directory_in_progress_paused"])
+    
+    try:
+        _move_files(
+            download_directory_in_progress_active,
+            download_directory_in_progress_paused)
+    except Exception as err:
+        return _print_error_and_exit(
+            f'Error while moving files to {paused_dir} '
+            f'for download {download_number+1}: {err}',
+            logger)
+    logger.info(f'Finished moving download '
+                f'{download_number+1}\'s files to {paused_dir}')
 
 
 
@@ -445,6 +487,10 @@ def _replace_non_ascii_with_underscore(input_string):
 
 
 
+
+
+
+
 def main():
     """
     The main script of this project.
@@ -534,6 +580,7 @@ def main():
     
     ### Loop over all videos to download:
     for i, url in enumerate(video_urls):
+        print(f'Download {i+1}: Starting...')
         video_file = None
         ### Download video
         logger.info(f'Download {i+1}: {url} with aditional parameters '
@@ -542,8 +589,6 @@ def main():
         try:
             # Get potential name of downloaded files
             download_info = downloader.extract_info(url)
-            with open('temp.json', 'w', encoding='utf-8') as outfile:
-                json.dump(download_info, outfile, indent=4)
             try: 
                 title = download_info['fulltitle']
             except:
@@ -635,6 +680,7 @@ def main():
                              f'additional content')
                 _move_active_to_failed(i, logger)
                 continue
+
         except yt_dlp.postprocessor.ffmpeg.FFmpegPostProcessorError as err:
             logger.error(f'Download {i+1}: FFMPEG error! ({url})')
             logger.error(f'Download {i+1}: {err}')
@@ -650,6 +696,11 @@ def main():
                     _replace_non_ascii_with_underscore(file_name))
                 os.rename(problematic_file, sanitized_file)
 
+        except Exception as err:
+            logger.error(f'Download {i+1}: Different download error! ({url})')
+            logger.error(f'Download {i+1}: {err}')
+            _move_active_to_failed(i, logger)
+            continue
             
                 
 
@@ -808,11 +859,17 @@ def main():
                     # If language en reformatting ML-model doesn't apply
                     debug_info = sub_convert.generate_converted_subtitles(
                         subtitle_file, True, False, False)
+                    
+                error_occured = False
                 for key, message in debug_info.items():
                     if str.startswith(message, 'Error'):
                         logger.error(f'Download {i+1}: {key}: {message}')
+                        error_occured = True
                     else:
                         logger.info(f'Download {i+1}: {key}: {message}')
+                if error_occured:
+                    _move_active_to_paused(i, logger)
+                    continue
 
         # Downloaded video does NOT have automatic or manual captions
         # If this is the case and the missing langauge is English,
@@ -841,11 +898,16 @@ def main():
                 import subtitles_generate_new as sub_generate
                 debug_info = sub_generate.generate_new_subtitles(
                     video_file_path)
+                error_occured = False
                 for key, message in debug_info.items():
                     if str.startswith(message, 'Error'):
                         logger.error(f'Download {i+1}: {key}: {message}')
+                        error_occured = True
                     else:
                         logger.info(f'Download {i+1}: {key}: {message}')
+                if error_occured:
+                    _move_active_to_paused(i, logger)
+                    continue
 
         ### Subtitle embedding 
         # Embed subtitle files into video file
@@ -931,6 +993,8 @@ def main():
         logger.info(f'Download {i+1}: ({url}) Post processing finished!')
         _move_active_to_final(i, logger)
         print(f'Download {i+1}: Finished!')
+
+
 
 if __name__ == '__main__':
     main()
