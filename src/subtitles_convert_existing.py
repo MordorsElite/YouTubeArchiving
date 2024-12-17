@@ -660,21 +660,27 @@ def generate_converted_subtitles(
     dict:
         A dict with debug information about the generated subtitle files
     """
-    debug_info = {}
-    # Get header for all files
-    header = ''
-    with open(subtitle_file, 'r') as original:
-        for i in range(4):
-            header += original.readline()
-        header = header[:-1]
-    if header is None or header == '':
-        debug_info['other'] = 'Error: Subtitle file contained incorrect header'
-        return debug_info
+    try:
+        debug_info = {}
+        # Get header for all files
+        header = ''
+        with open(subtitle_file, 'r') as original:
+            for i in range(4):
+                header += original.readline()
+            header = header[:-1]
+        if header is None or header == '':
+            debug_info['other'] = 'Error: Subtitle file contained incorrect header'
+            return debug_info
 
-    # Define output file names
-    sub_file_dir_it = subtitle_file[:-4] + '.direct_iterative' + subtitle_file[-4:]
-    sub_file_reform = subtitle_file[:-4] + '.reformatted' + subtitle_file[-4:]
-    sub_file_ref_it = subtitle_file[:-4] + '.reformatted_iterative' + subtitle_file[-4:]
+        # Define output file names
+        sub_file_dir_it = subtitle_file[:-4] + '.direct_iterative' + subtitle_file[-4:]
+        sub_file_reform = subtitle_file[:-4] + '.reformatted' + subtitle_file[-4:]
+        sub_file_ref_it = subtitle_file[:-4] + '.reformatted_iterative' + subtitle_file[-4:]
+    except Exception as err:
+        debug_info['direct_iterative'] = \
+            f'Error: ' +\
+            f'Preparation for subtitle conversion failed: ' +\
+            f'{subtitle_file}: {err}'
 
     if direct_iterative:
         # Generate direct iterative subtitles

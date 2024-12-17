@@ -468,7 +468,7 @@ def _get_id_from_url(url:str) -> str:
 
 
 
-def _replace_non_ascii_with_underscore(input_string):
+def _sanitize_file_name(input_string):
     """
     Replaces all characters in the input string that require UTF-8 to parse
     (non-ASCII characters) with underscores.
@@ -483,7 +483,10 @@ def _replace_non_ascii_with_underscore(input_string):
     str:
         String with non-ASCII characters replaced by underscores.
     """
-    return ''.join(char if ord(char) < 128 else '_' for char in input_string)
+    result = ''.join(char if ord(char) < 128 else '_' for char in input_string)
+    result = result.replace('\\', '_')
+    result = result.replace('#', '_')
+    return result
 
 
 
@@ -580,6 +583,7 @@ def main():
     
     ### Loop over all videos to download:
     for i, url in enumerate(video_urls):
+        url = url.replace('\n', '')
         print(f'Download {i+1}: Starting...')
         video_file = None
         ### Download video
@@ -596,7 +600,7 @@ def main():
             video_id = download_info['id']
             video_uploader = download_info['uploader']
             video_upload_date = download_info['upload_date']
-            output_name = _replace_non_ascii_with_underscore(
+            output_name = _sanitize_file_name(
                 f'YouTube ## {video_uploader} ## {video_upload_date} '
                 f'## {title} ## {video_id}.mkv')
             
@@ -693,7 +697,7 @@ def main():
                     file_name)
                 sanitized_file = os.path.join(
                     download_directory_in_progress_active,
-                    _replace_non_ascii_with_underscore(file_name))
+                    _sanitize_file_name(file_name))
                 os.rename(problematic_file, sanitized_file)
 
         except Exception as err:
