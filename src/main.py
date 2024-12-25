@@ -434,6 +434,32 @@ def _move_active_to_final(
 
 
 
+def _remove_entry_from_download_archive(video_id:str) -> None:
+    """
+    Removes specified entry from download_archive.txt if it exists.
+
+    Parameters
+    ----------
+    video_id:str
+        Video id to remove from download_archive.txt
+    """
+    download_archive_file = os.path.join(
+        config["download_directory_main"],
+        config["download_directory_data"],
+        config["download_archive_file"])
+    with open(download_archive_file, 'r', encoding='utf-8') as infile:
+        ids = infile.readlines()
+    ids = [id.strip() for id in ids]
+
+    compare_id = f'youtube {video_id}'
+    ids = [id for id in ids if id != compare_id]
+
+    with open(download_archive_file, 'w') as outfile:
+        for id in ids:
+            outfile.write(f'{id}\n')
+    
+
+
 def _get_id_from_url(url:str) -> str:
     """
     Returns video id from a url
@@ -486,6 +512,8 @@ def _sanitize_file_name(input_string):
     result = ''.join(char if ord(char) < 128 else '_' for char in input_string)
     result = result.replace('\\', '_')
     result = result.replace('#', '_')
+    result = result.replace('!', '_')
+    result = result.replace('?', '_')
     return result
 
 
@@ -528,6 +556,7 @@ def main():
     if args.file is not None:
         with open(args.file, 'r', encoding='utf-8') as url_file:
             for url in url_file.readlines():
+                url = url.strip()
                 video_urls.append(url)
         if video_urls in [None, []]:
             return _print_error_and_exit(logger,
@@ -586,6 +615,7 @@ def main():
         url = url.replace('\n', '')
         print(f'Download {i+1}: Starting...')
         video_file = None
+        skip_rest = False # Used in case error occurs inside a nested loop
         ### Download video
         logger.info(f'Download {i+1}: {url} with aditional parameters '
                     f'rate_limit={args.rate_limit} '
@@ -704,6 +734,7 @@ def main():
             logger.error(f'Download {i+1}: Different download error! ({url})')
             logger.error(f'Download {i+1}: {err}')
             _move_active_to_failed(i, logger)
+            _remove_entry_from_download_archive(_get_id_from_url(url))
             continue
             
                 
@@ -726,6 +757,7 @@ def main():
 
             # Move Files from faild download into the designated directory
             _move_active_to_failed(i, logger)
+            _remove_entry_from_download_archive(_get_id_from_url(url))
             continue
             
         ### If Post-processing is set to "postponted", skip rest of the loop
@@ -873,7 +905,11 @@ def main():
                         logger.info(f'Download {i+1}: {key}: {message}')
                 if error_occured:
                     _move_active_to_paused(i, logger)
-                    continue
+                    _remove_entry_from_download_archive(_get_id_from_url(url))
+                    skip_rest = True
+                    break
+        if skip_rest:
+            continue
 
         # Downloaded video does NOT have automatic or manual captions
         # If this is the case and the missing langauge is English,
@@ -911,7 +947,11 @@ def main():
                         logger.info(f'Download {i+1}: {key}: {message}')
                 if error_occured:
                     _move_active_to_paused(i, logger)
-                    continue
+                    _remove_entry_from_download_archive(_get_id_from_url(url))
+                    skip_rest = True
+                    break
+        if skip_rest:
+            continue
 
         ### Subtitle embedding 
         # Embed subtitle files into video file
